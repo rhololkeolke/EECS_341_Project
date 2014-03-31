@@ -169,8 +169,8 @@ ALTER SEQUENCE orders_order_id_seq OWNED BY orders.order_id;
 --
 
 CREATE TABLE product (
-    upc integer NOT NULL,
-    name character varying(30) NOT NULL,
+    upc bigint NOT NULL,
+    name character varying(100) NOT NULL,
     description text NOT NULL,
     size character(1),
     brand character varying(30),
@@ -200,8 +200,8 @@ ALTER TABLE public.product_location OWNER TO rhol;
 --
 
 CREATE TABLE product_spec (
-    upc integer NOT NULL,
-    type character varying(20) NOT NULL,
+    upc bigint NOT NULL,
+    type character varying(50) NOT NULL,
     amount numeric NOT NULL,
     unit character varying(20) NOT NULL
 );
@@ -214,7 +214,7 @@ ALTER TABLE public.product_spec OWNER TO rhol;
 --
 
 CREATE TABLE product_type (
-    upc integer NOT NULL,
+    upc bigint NOT NULL,
     type_id integer NOT NULL
 );
 
@@ -520,6 +520,7 @@ PowerSpec
 Tenda
 Toshiba
 Western Digital
+AMD
 \.
 
 
@@ -582,6 +583,9 @@ SELECT pg_catalog.setval('orders_order_id_seq', 1, false);
 --
 
 COPY product (upc, name, description, size, brand) FROM stdin;
+735858224048	Xeon E5 2630 2.3GHz LGA 2011 Boxed Processor	Build the workstation computer of your dreams with the Intel Xeon E5-2630 processor.	S	Intel
+730143304498	A10 7700K 3.8 Ghz Black Edition Boxed processor		S	AMD
+735858272278	Core i7-4960X 3.6 GHz LGA 2011 Boxed Processor	Amazing performance and stunning visuals at their best. Get top-of-the-line performance for your most demanding tasks with a 4th generation Intel Core i7 processor. For a difference you can see and feel in HD and 3-D, multitasking and multimedia, the 4th generation Intel Core i7 processor is perfect for all your most demanding tasks.	S	Intel
 \.
 
 
@@ -598,6 +602,31 @@ COPY product_location (store_id, upc, shelf_id, amount) FROM stdin;
 --
 
 COPY product_spec (upc, type, amount, unit) FROM stdin;
+735858224048	Operating Frequency	2.3	GHz
+735858224048	Turbo Speed	2.8	GHz
+735858224048	Number of Cores	6	
+735858224048	Number of Threads	12	
+735858224048	Smart Cache	15	MB
+735858224048	Bus/Core Ratio	28	
+735858224048	Maximum Operating Temperature	77.4	C
+735858224048	Processor Data Width	64	bit
+735858224048	Maximum Memory Supported	750	GB
+735858224048	Memory Channels Supported	4	
+735858224048	Maximum Memory Bandwidth	42.6	GB/s
+735858224048	PCI Express Revision	3.0	
+730143304498	Operating Frequency	3.8	GHz
+730143304498	Level 2 Cache	4	MB
+730143304498	Graphics Base Frequency	720	MHz
+735858272278	Operating Frequency	3.6	GHz
+735858272278	Turbo Speed	4.0	GHz
+735858272278	Number of Cores	6	
+735858272278	Number of Threads	12	
+735858272278	Level 3 Cache	15	MB
+735858272278	Thermal Power	130	W
+735858272278	Processor Data Width	64	bit
+735858272278	Maximum Memory Suported	64	GB
+735858272278	Memory Channels Supported	4	
+735858272278	PCI Express Revision	3.0	
 \.
 
 
@@ -606,6 +635,9 @@ COPY product_spec (upc, type, amount, unit) FROM stdin;
 --
 
 COPY product_type (upc, type_id) FROM stdin;
+735858224048	27
+730143304498	27
+735858272278	27
 \.
 
 
