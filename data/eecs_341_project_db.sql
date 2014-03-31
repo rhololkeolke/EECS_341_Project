@@ -228,7 +228,7 @@ ALTER TABLE public.product_type OWNER TO rhol;
 CREATE TABLE product_type_class (
     type_id integer NOT NULL,
     name character varying(30) NOT NULL,
-    subcategory integer
+    parent_category integer
 );
 
 
@@ -596,7 +596,106 @@ COPY product_type (upc, type_id) FROM stdin;
 -- Data for Name: product_type_class; Type: TABLE DATA; Schema: public; Owner: rhol
 --
 
-COPY product_type_class (type_id, name, subcategory) FROM stdin;
+COPY product_type_class (type_id, name, parent_category) FROM stdin;
+1	Computers	\N
+2	Computer Parts	\N
+3	Electronics	\N
+4	Networking	\N
+5	Accessories	\N
+6	Gaming	\N
+7	Software	\N
+8	Books	\N
+9	Desktops	1
+10	Ultrabooks	1
+11	Laptops/Netbooks	1
+12	Apple Desktops	1
+13	Apple Laptops	1
+14	Monitors	1
+15	Apple iPads	1
+16	Tablets	1
+17	Printers	1
+18	Keyboards	1
+19	Mice	1
+20	Scanners	1
+21	Projectors	1
+22	All-in-One Desktops	9
+23	Laptop Accessories	11
+24	Mac Hardware	12
+25	Mac Accessories	12
+26	Mac Laptop Accessories	13
+27	Processors/CPUs	2
+28	Motherboards	2
+29	Hard Drives	2
+30	Computer Memory/RAM	2
+31	Video Cards	2
+32	TV Tuners	2
+33	Power Supplies	2
+34	Computer Cases	2
+35	CD/DVD/Blu-ray Burners	2
+36	Air & Water Cooling	2
+37	Sound Cards	2
+38	Controller Cards	2
+39	Case Accessories	2
+40	Tools	2
+41	AMD CPU/Motherboard Bundles	27
+42	Intel CPU/Motherboard Bundles	27
+43	LCD, Plasma HDTVs	3
+44	iPods & MP3 Players	3
+45	GPS	3
+46	Digital Photography	3
+47	Flash Memory	3
+48	USB Flash Drives	3
+49	Webcams & Video Editing	3
+50	Digital Photo Frames	3
+51	Hobby Electronics	3
+52	Phones & Accessories	3
+53	Security & Home Automation	3
+54	Wall Mounts & Stands	43
+55	MP3 Accessories	44
+56	Digital Cameras	46
+57	Digital SLR Cameras	46
+58	Camcorders	46
+59	Photo Accessories	46
+60	Arduino Compatible	51
+61	Raspberry Pi	51
+62	Wireless Networking	4
+63	Wired Networking	4
+64	Network Attached Storage (NAS)	4
+65	Networking Cables	4
+66	Modems	4
+67	Networking Tools	4
+68	Wireless Routers	62
+69	Wireless Cards	62
+70	Wireless Access Points	62
+71	Antennas, Signal Boosters	62
+72	Wired Routers	63
+73	Wired Cards	63
+74	Wired Hubs, Switches	63
+75	Ink & Toner Finder	5
+76	Carrying Cases	5
+77	Paper	5
+78	Labels	5
+79	CD/DVD/Blu-ray Media	5
+80	Cables & Adapters	5
+81	Batteries, Chargers	5
+82	UPS, Surge Protection	5
+83	KVM	5
+84	Wristrest, Mousepads	5
+85	Office Supplies	5
+86	Cleaning, Maintenance	5
+87	Speakers, Microphones	5
+88	Consoles	6
+89	Handheld	6
+90	Windows	6
+91	XBOX ONE	6
+92	XBOX 360	6
+93	PS4	6
+94	PS3	6
+95	Wii/Wii U	6
+96	Macintosh	6
+97	PS2	6
+98	Game Guides	6
+99	Windows Server	7
 \.
 
 
@@ -604,7 +703,7 @@ COPY product_type_class (type_id, name, subcategory) FROM stdin;
 -- Name: product_type_class_type_id_seq; Type: SEQUENCE SET; Schema: public; Owner: rhol
 --
 
-SELECT pg_catalog.setval('product_type_class_type_id_seq', 1, false);
+SELECT pg_catalog.setval('product_type_class_type_id_seq', 99, true);
 
 
 --
@@ -1007,6 +1106,14 @@ ALTER TABLE ONLY product_spec
 
 
 --
+-- Name: product_type_class_name_key; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
+--
+
+ALTER TABLE ONLY product_type_class
+    ADD CONSTRAINT product_type_class_name_key UNIQUE (name);
+
+
+--
 -- Name: product_type_class_pkey; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
 --
 
@@ -1199,11 +1306,11 @@ ALTER TABLE ONLY product_spec
 
 
 --
--- Name: product_type_class_subcategory_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+-- Name: product_type_class_parent_category_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
 --
 
 ALTER TABLE ONLY product_type_class
-    ADD CONSTRAINT product_type_class_subcategory_fkey FOREIGN KEY (subcategory) REFERENCES product_type_class(type_id);
+    ADD CONSTRAINT product_type_class_parent_category_fkey FOREIGN KEY (parent_category) REFERENCES product_type_class(type_id);
 
 
 --
