@@ -503,6 +503,23 @@ ALTER TABLE ONLY store ALTER COLUMN store_id SET DEFAULT nextval('store_store_id
 --
 
 COPY brand (name) FROM stdin;
+Acer
+Antec
+Apple
+ASUS
+Brother
+Corsair
+Dell
+EVGA
+Hewlett-Packard
+Intel
+Lenovo
+LG
+Microsoft
+PowerSpec
+Tenda
+Toshiba
+Western Digital
 \.
 
 
