@@ -331,11 +331,12 @@ ALTER TABLE public.stock OWNER TO rhol;
 CREATE TABLE store (
     store_id integer NOT NULL,
     opening_date date NOT NULL,
-    street1 character varying(20) NOT NULL,
-    street2 character varying(20),
+    street1 character varying(50) NOT NULL,
+    street2 character varying(50),
     city character varying(20) NOT NULL,
     state character(2) NOT NULL,
-    zip integer NOT NULL
+    zip integer NOT NULL,
+    name character varying(75)
 );
 
 
@@ -641,7 +642,32 @@ COPY stock (store_id, upc, amount, unit_price) FROM stdin;
 -- Data for Name: store; Type: TABLE DATA; Schema: public; Owner: rhol
 --
 
-COPY store (store_id, opening_date, street1, street2, city, state, zip) FROM stdin;
+COPY store (store_id, opening_date, street1, street2, city, state, zip, name) FROM stdin;
+1	1985-05-11	1100 East Edinger Avenue	\N	Tustin	CA	92780	Orange County/Tustin
+2	1995-06-22	8000 East Quincy Avenue	Denver Tech Center	Denver	CO	80237	Denver/Denver Teach Center, Colorado
+3	2000-11-13	2340 Pleasant Hill Road	\N	Duluth	GA	30096	Greater Atlanta/Duluth, Georgia
+4	2005-03-17	1275 Powers Ferry Rd. SE, Suite 50	Powers Ferry Plaza	Marietta	GA	30067	Gerater Atlanta/Marietta, Georgia
+5	2010-10-23	2645 Elston Avenue	\N	Chicago	IL	60647	Chicagoland/Central, Illinois
+6	2001-01-23	80 East Ogden Avenue	\N	Chicago	IL	60559	Chicagoland/Westmont, Illinois
+7	2009-05-31	9294 Metcalf Avenue	Regency Park Shopping Center	Overland Park	KS	66212	Kansas City/Overland Park, Kansas
+8	1994-10-23	730 Memorial Drive	\N	Cambridge	MA	2139	Boston/Cambridge, Massachusetts
+9	1991-09-18	1776 E. Jerrerson #203	Federal Plaza	Rockville	MD	20852	Beltway/Rockville, Maryland
+10	1989-04-01	1957 E Joppa Road	\N	Parkville	MD	21234	Towson/Baltimore, Maryland
+11	1996-08-23	32800 Concord Drive	\N	Madison Heights	MI	48071	Detroit/Madison Heights
+12	1999-07-08	3710 Highway 100 South	\N	St. Louis Park	MN	55416	Twin Cities/St. Louis Park
+13	1994-11-13	87 Brentwood Promenade Ct	\N	Brentwood	MO	63144	Brentwood, Missouri
+14	1998-05-11	263 McLean Blvd.	Route 20 Retail Center	Paterson	NJ	7504	North Jersey/Paterson, New Jersey
+15	2007-09-25	655 Merrick Avenue	\N	Westbury	NY	11590	Long Island/Westbury, New York
+16	2009-10-15	750-A Central Park Avenue	\N	Yonkers	NY	10704	Westchester County/Yonkers
+17	2013-02-21	71-43 Kissena Blvd.	Between 71st and 72nd Avenue	Flushing	NY	113367	Queens/Flushing, New York
+18	2014-01-01	850 3rd Avenue	Corner of 31st Street and 3rd Ave.	Brooklyn	NY	11232	Brooklyn/Gowanus Expy
+19	1979-05-11	747 Bethel Road	Olentangy Plaza	Columbus	OH	43214	Central Ohio/Columbus
+20	1991-03-15	1349 S. O. M. Center Road	Eastgate Shopping Center	Mayfield Heights	OH	44124	Northeast Ohio/Mayfield Heights
+21	1980-06-11	11755 Mosteller Road	\N	Sharonville	OH	45241	Cincinnati/Sharonville, Ohio
+22	1985-12-01	550 East Lancaster Avenue	St. Davids Square	St. Davids	PA	19087	Philadelphia/St. Davids
+23	2001-03-23	1717 West Loop Drive South	\N	Houston	TX	77027	Houston/West Loop, Texas
+24	2002-02-01	13292 N. Central Expressway	Keyston Plaza	Dallas	TX	75243	Dallas Metroplex/Richardon, Texas
+25	2003-07-17	3089 Nutley Street	Pan Am Plaza	Fairfax	VA	22031	Northern Virginia/Fairfax
 \.
 
 
@@ -673,7 +699,7 @@ COPY store_phone (store_id, phone) FROM stdin;
 -- Name: store_store_id_seq; Type: SEQUENCE SET; Schema: public; Owner: rhol
 --
 
-SELECT pg_catalog.setval('store_store_id_seq', 1, false);
+SELECT pg_catalog.setval('store_store_id_seq', 25, true);
 
 
 --
