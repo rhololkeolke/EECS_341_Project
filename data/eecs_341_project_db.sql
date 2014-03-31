@@ -228,7 +228,9 @@ ALTER TABLE public.product_type OWNER TO rhol;
 CREATE TABLE product_type_class (
     type_id integer NOT NULL,
     name character varying(30) NOT NULL,
-    parent_category integer
+    parent_category integer,
+    lft integer NOT NULL,
+    rgt integer NOT NULL
 );
 
 
@@ -645,106 +647,106 @@ COPY product_type (upc, type_id) FROM stdin;
 -- Data for Name: product_type_class; Type: TABLE DATA; Schema: public; Owner: rhol
 --
 
-COPY product_type_class (type_id, name, parent_category) FROM stdin;
-1	Computers	\N
-2	Computer Parts	\N
-3	Electronics	\N
-4	Networking	\N
-5	Accessories	\N
-6	Gaming	\N
-7	Software	\N
-8	Books	\N
-9	Desktops	1
-10	Ultrabooks	1
-11	Laptops/Netbooks	1
-12	Apple Desktops	1
-13	Apple Laptops	1
-14	Monitors	1
-15	Apple iPads	1
-16	Tablets	1
-17	Printers	1
-18	Keyboards	1
-19	Mice	1
-20	Scanners	1
-21	Projectors	1
-22	All-in-One Desktops	9
-23	Laptop Accessories	11
-24	Mac Hardware	12
-25	Mac Accessories	12
-26	Mac Laptop Accessories	13
-27	Processors/CPUs	2
-28	Motherboards	2
-29	Hard Drives	2
-30	Computer Memory/RAM	2
-31	Video Cards	2
-32	TV Tuners	2
-33	Power Supplies	2
-34	Computer Cases	2
-35	CD/DVD/Blu-ray Burners	2
-36	Air & Water Cooling	2
-37	Sound Cards	2
-38	Controller Cards	2
-39	Case Accessories	2
-40	Tools	2
-41	AMD CPU/Motherboard Bundles	27
-42	Intel CPU/Motherboard Bundles	27
-43	LCD, Plasma HDTVs	3
-44	iPods & MP3 Players	3
-45	GPS	3
-46	Digital Photography	3
-47	Flash Memory	3
-48	USB Flash Drives	3
-49	Webcams & Video Editing	3
-50	Digital Photo Frames	3
-51	Hobby Electronics	3
-52	Phones & Accessories	3
-53	Security & Home Automation	3
-54	Wall Mounts & Stands	43
-55	MP3 Accessories	44
-56	Digital Cameras	46
-57	Digital SLR Cameras	46
-58	Camcorders	46
-59	Photo Accessories	46
-60	Arduino Compatible	51
-61	Raspberry Pi	51
-62	Wireless Networking	4
-63	Wired Networking	4
-64	Network Attached Storage (NAS)	4
-65	Networking Cables	4
-66	Modems	4
-67	Networking Tools	4
-68	Wireless Routers	62
-69	Wireless Cards	62
-70	Wireless Access Points	62
-71	Antennas, Signal Boosters	62
-72	Wired Routers	63
-73	Wired Cards	63
-74	Wired Hubs, Switches	63
-75	Ink & Toner Finder	5
-76	Carrying Cases	5
-77	Paper	5
-78	Labels	5
-79	CD/DVD/Blu-ray Media	5
-80	Cables & Adapters	5
-81	Batteries, Chargers	5
-82	UPS, Surge Protection	5
-83	KVM	5
-84	Wristrest, Mousepads	5
-85	Office Supplies	5
-86	Cleaning, Maintenance	5
-87	Speakers, Microphones	5
-88	Consoles	6
-89	Handheld	6
-90	Windows	6
-91	XBOX ONE	6
-92	XBOX 360	6
-93	PS4	6
-94	PS3	6
-95	Wii/Wii U	6
-96	Macintosh	6
-97	PS2	6
-98	Game Guides	6
-99	Windows Server	7
+COPY product_type_class (type_id, name, parent_category, lft, rgt) FROM stdin;
+1	Computers	\N	0	0
+2	Computer Parts	\N	0	0
+3	Electronics	\N	0	0
+4	Networking	\N	0	0
+5	Accessories	\N	0	0
+6	Gaming	\N	0	0
+7	Software	\N	0	0
+8	Books	\N	0	0
+9	Desktops	1	0	0
+10	Ultrabooks	1	0	0
+11	Laptops/Netbooks	1	0	0
+12	Apple Desktops	1	0	0
+13	Apple Laptops	1	0	0
+14	Monitors	1	0	0
+15	Apple iPads	1	0	0
+16	Tablets	1	0	0
+17	Printers	1	0	0
+18	Keyboards	1	0	0
+19	Mice	1	0	0
+20	Scanners	1	0	0
+21	Projectors	1	0	0
+22	All-in-One Desktops	9	0	0
+23	Laptop Accessories	11	0	0
+24	Mac Hardware	12	0	0
+25	Mac Accessories	12	0	0
+26	Mac Laptop Accessories	13	0	0
+27	Processors/CPUs	2	0	0
+28	Motherboards	2	0	0
+29	Hard Drives	2	0	0
+30	Computer Memory/RAM	2	0	0
+31	Video Cards	2	0	0
+32	TV Tuners	2	0	0
+33	Power Supplies	2	0	0
+34	Computer Cases	2	0	0
+35	CD/DVD/Blu-ray Burners	2	0	0
+36	Air & Water Cooling	2	0	0
+37	Sound Cards	2	0	0
+38	Controller Cards	2	0	0
+39	Case Accessories	2	0	0
+40	Tools	2	0	0
+41	AMD CPU/Motherboard Bundles	27	0	0
+42	Intel CPU/Motherboard Bundles	27	0	0
+43	LCD, Plasma HDTVs	3	0	0
+44	iPods & MP3 Players	3	0	0
+45	GPS	3	0	0
+46	Digital Photography	3	0	0
+47	Flash Memory	3	0	0
+48	USB Flash Drives	3	0	0
+49	Webcams & Video Editing	3	0	0
+50	Digital Photo Frames	3	0	0
+51	Hobby Electronics	3	0	0
+52	Phones & Accessories	3	0	0
+53	Security & Home Automation	3	0	0
+54	Wall Mounts & Stands	43	0	0
+55	MP3 Accessories	44	0	0
+56	Digital Cameras	46	0	0
+57	Digital SLR Cameras	46	0	0
+58	Camcorders	46	0	0
+59	Photo Accessories	46	0	0
+60	Arduino Compatible	51	0	0
+61	Raspberry Pi	51	0	0
+62	Wireless Networking	4	0	0
+63	Wired Networking	4	0	0
+64	Network Attached Storage (NAS)	4	0	0
+65	Networking Cables	4	0	0
+66	Modems	4	0	0
+67	Networking Tools	4	0	0
+68	Wireless Routers	62	0	0
+69	Wireless Cards	62	0	0
+70	Wireless Access Points	62	0	0
+71	Antennas, Signal Boosters	62	0	0
+72	Wired Routers	63	0	0
+73	Wired Cards	63	0	0
+74	Wired Hubs, Switches	63	0	0
+75	Ink & Toner Finder	5	0	0
+76	Carrying Cases	5	0	0
+77	Paper	5	0	0
+78	Labels	5	0	0
+79	CD/DVD/Blu-ray Media	5	0	0
+80	Cables & Adapters	5	0	0
+81	Batteries, Chargers	5	0	0
+82	UPS, Surge Protection	5	0	0
+83	KVM	5	0	0
+84	Wristrest, Mousepads	5	0	0
+85	Office Supplies	5	0	0
+86	Cleaning, Maintenance	5	0	0
+87	Speakers, Microphones	5	0	0
+88	Consoles	6	0	0
+89	Handheld	6	0	0
+90	Windows	6	0	0
+91	XBOX ONE	6	0	0
+92	XBOX 360	6	0	0
+93	PS4	6	0	0
+94	PS3	6	0	0
+95	Wii/Wii U	6	0	0
+96	Macintosh	6	0	0
+97	PS2	6	0	0
+98	Game Guides	6	0	0
+99	Windows Server	7	0	0
 \.
 
 
