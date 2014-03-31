@@ -648,105 +648,106 @@ COPY product_type (upc, type_id) FROM stdin;
 --
 
 COPY product_type_class (type_id, name, parent_category, lft, rgt) FROM stdin;
-1	Computers	\N	0	0
-2	Computer Parts	\N	0	0
-3	Electronics	\N	0	0
-4	Networking	\N	0	0
-5	Accessories	\N	0	0
-6	Gaming	\N	0	0
-7	Software	\N	0	0
-8	Books	\N	0	0
-9	Desktops	1	0	0
-10	Ultrabooks	1	0	0
-11	Laptops/Netbooks	1	0	0
-12	Apple Desktops	1	0	0
-13	Apple Laptops	1	0	0
-14	Monitors	1	0	0
-15	Apple iPads	1	0	0
-16	Tablets	1	0	0
-17	Printers	1	0	0
-18	Keyboards	1	0	0
-19	Mice	1	0	0
-20	Scanners	1	0	0
-21	Projectors	1	0	0
-22	All-in-One Desktops	9	0	0
-23	Laptop Accessories	11	0	0
-24	Mac Hardware	12	0	0
-25	Mac Accessories	12	0	0
-26	Mac Laptop Accessories	13	0	0
-27	Processors/CPUs	2	0	0
-28	Motherboards	2	0	0
-29	Hard Drives	2	0	0
-30	Computer Memory/RAM	2	0	0
-31	Video Cards	2	0	0
-32	TV Tuners	2	0	0
-33	Power Supplies	2	0	0
-34	Computer Cases	2	0	0
-35	CD/DVD/Blu-ray Burners	2	0	0
-36	Air & Water Cooling	2	0	0
-37	Sound Cards	2	0	0
-38	Controller Cards	2	0	0
-39	Case Accessories	2	0	0
-40	Tools	2	0	0
-41	AMD CPU/Motherboard Bundles	27	0	0
-42	Intel CPU/Motherboard Bundles	27	0	0
-43	LCD, Plasma HDTVs	3	0	0
-44	iPods & MP3 Players	3	0	0
-45	GPS	3	0	0
-46	Digital Photography	3	0	0
-47	Flash Memory	3	0	0
-48	USB Flash Drives	3	0	0
-49	Webcams & Video Editing	3	0	0
-50	Digital Photo Frames	3	0	0
-51	Hobby Electronics	3	0	0
-52	Phones & Accessories	3	0	0
-53	Security & Home Automation	3	0	0
-54	Wall Mounts & Stands	43	0	0
-55	MP3 Accessories	44	0	0
-56	Digital Cameras	46	0	0
-57	Digital SLR Cameras	46	0	0
-58	Camcorders	46	0	0
-59	Photo Accessories	46	0	0
-60	Arduino Compatible	51	0	0
-61	Raspberry Pi	51	0	0
-62	Wireless Networking	4	0	0
-63	Wired Networking	4	0	0
-64	Network Attached Storage (NAS)	4	0	0
-65	Networking Cables	4	0	0
-66	Modems	4	0	0
-67	Networking Tools	4	0	0
-68	Wireless Routers	62	0	0
-69	Wireless Cards	62	0	0
-70	Wireless Access Points	62	0	0
-71	Antennas, Signal Boosters	62	0	0
-72	Wired Routers	63	0	0
-73	Wired Cards	63	0	0
-74	Wired Hubs, Switches	63	0	0
-75	Ink & Toner Finder	5	0	0
-76	Carrying Cases	5	0	0
-77	Paper	5	0	0
-78	Labels	5	0	0
-79	CD/DVD/Blu-ray Media	5	0	0
-80	Cables & Adapters	5	0	0
-81	Batteries, Chargers	5	0	0
-82	UPS, Surge Protection	5	0	0
-83	KVM	5	0	0
-84	Wristrest, Mousepads	5	0	0
-85	Office Supplies	5	0	0
-86	Cleaning, Maintenance	5	0	0
-87	Speakers, Microphones	5	0	0
-88	Consoles	6	0	0
-89	Handheld	6	0	0
-90	Windows	6	0	0
-91	XBOX ONE	6	0	0
-92	XBOX 360	6	0	0
-93	PS4	6	0	0
-94	PS3	6	0	0
-95	Wii/Wii U	6	0	0
-96	Macintosh	6	0	0
-97	PS2	6	0	0
-98	Game Guides	6	0	0
-99	Windows Server	7	0	0
+16	Tablets	1	27	28
+42	Intel CPU/Motherboard Bundles	27	44	45
+74	Wired Hubs, Switches	63	130	131
+69	Wireless Cards	62	118	119
+75	Ink & Toner Finder	5	143	144
+27	Processors/CPUs	2	41	46
+58	Camcorders	46	90	91
+11	Laptops/Netbooks	1	9	12
+22	All-in-One Desktops	9	4	5
+9	Desktops	1	3	6
+17	Printers	1	29	30
+28	Motherboards	2	47	48
+10	Ultrabooks	1	7	8
+18	Keyboards	1	31	32
+24	Mac Hardware	12	14	15
+23	Laptop Accessories	11	10	11
+35	CD/DVD/Blu-ray Burners	2	61	62
+25	Mac Accessories	12	16	17
+12	Apple Desktops	1	13	18
+19	Mice	1	33	34
+29	Hard Drives	2	49	50
+26	Mac Laptop Accessories	13	20	21
+13	Apple Laptops	1	19	22
+20	Scanners	1	35	36
+14	Monitors	1	23	24
+54	Wall Mounts & Stands	43	76	77
+15	Apple iPads	1	25	26
+30	Computer Memory/RAM	2	51	52
+21	Projectors	1	37	38
+1	Computers	0	2	39
+43	LCD, Plasma HDTVs	3	75	78
+36	Air & Water Cooling	2	63	64
+60	Arduino Compatible	51	104	105
+41	AMD CPU/Motherboard Bundles	27	42	43
+59	Photo Accessories	46	92	93
+31	Video Cards	2	53	54
+37	Sound Cards	2	65	66
+32	TV Tuners	2	55	56
+55	MP3 Accessories	44	80	81
+33	Power Supplies	2	57	58
+38	Controller Cards	2	67	68
+34	Computer Cases	2	59	60
+44	iPods & MP3 Players	3	79	82
+39	Case Accessories	2	69	70
+46	Digital Photography	3	85	94
+40	Tools	2	71	72
+2	Computer Parts	0	40	73
+63	Wired Networking	4	125	132
+45	GPS	3	83	84
+70	Wireless Access Points	62	120	121
+61	Raspberry Pi	51	106	107
+56	Digital Cameras	46	86	87
+47	Flash Memory	3	95	96
+57	Digital SLR Cameras	46	88	89
+51	Hobby Electronics	3	103	108
+48	USB Flash Drives	3	97	98
+99	Windows Server	7	195	196
+49	Webcams & Video Editing	3	99	100
+52	Phones & Accessories	3	109	110
+50	Digital Photo Frames	3	101	102
+71	Antennas, Signal Boosters	62	122	123
+62	Wireless Networking	4	115	124
+53	Security & Home Automation	3	111	112
+3	Electronics	0	74	113
+76	Carrying Cases	5	145	146
+64	Network Attached Storage (NAS)	4	133	134
+82	UPS, Surge Protection	5	157	158
+68	Wireless Routers	62	116	117
+77	Paper	5	147	148
+72	Wired Routers	63	126	127
+65	Networking Cables	4	135	136
+73	Wired Cards	63	128	129
+94	PS3	6	183	184
+78	Labels	5	149	150
+66	Modems	4	137	138
+83	KVM	5	159	160
+67	Networking Tools	4	139	140
+4	Networking	0	114	141
+88	Consoles	6	171	172
+7	Software	0	194	197
+79	CD/DVD/Blu-ray Media	5	151	152
+84	Wristrest, Mousepads	5	161	162
+80	Cables & Adapters	5	153	154
+89	Handheld	6	173	174
+81	Batteries, Chargers	5	155	156
+85	Office Supplies	5	163	164
+95	Wii/Wii U	6	185	186
+86	Cleaning, Maintenance	5	165	166
+90	Windows	6	175	176
+87	Speakers, Microphones	5	167	168
+5	Accessories	0	142	169
+91	XBOX ONE	6	177	178
+96	Macintosh	6	187	188
+92	XBOX 360	6	179	180
+8	Books	0	198	199
+0	Root	\N	1	200
+93	PS4	6	181	182
+97	PS2	6	189	190
+98	Game Guides	6	191	192
+6	Gaming	0	170	193
 \.
 
 
