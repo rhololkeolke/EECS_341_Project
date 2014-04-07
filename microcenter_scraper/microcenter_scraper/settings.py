@@ -6,12 +6,14 @@
 #     http://doc.scrapy.org/en/latest/topics/settings.html
 #
 
+from database_settings import DATABASE
+
 BOT_NAME = 'microcenter_scraper'
 
 SPIDER_MODULES = ['microcenter_scraper.spiders']
 NEWSPIDER_MODULE = 'microcenter_scraper.spiders'
+ITEM_PIPELINES = {'microcenter_scraper.pipelines.MicrocenterProductPipeline': 0}
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'microcenter_scraper (+http://www.yourdomain.com)'
 
-from database_settings import DATABASE

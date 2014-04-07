@@ -127,6 +127,9 @@ class Brand(DeclarativeBase):
     id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False, unique=True)
 
+    def __repr__(self):
+        return "%s(id=%r, name=%r)" % (self.__class__, self.id, self.name)
+
 class Product(DeclarativeBase):
     __tablename__ = 'product'
     __table_args__ = (
@@ -141,6 +144,9 @@ class Product(DeclarativeBase):
     brand = Column(Integer, ForeignKey('brand.id'))
     unit_price = Column(Numeric, nullable=False)
 
+    def __repr__(self):
+        return "%s(upc=%r, name=%r, brand=%r, price=%r)" % (self.__class__, self.upc, self.name, self.brand, self.unit_price)
+
 class ProductTypeTree(DeclarativeBase):
     __tablename__ = 'product_type_tree'
     __table_args__ = (
@@ -154,11 +160,17 @@ class ProductTypeTree(DeclarativeBase):
     lft = Column(Integer, nullable=False)
     rgt = Column(Integer, nullable=True)
 
+    def __repr__(self):
+        return "%s(id=%r, name=%r, lft=%r, rgt=%r)" % (self.__class__, self.id, self.name, self.lft, self.rgt)
+
 class ProductType(DeclarativeBase):
     __tablename__ = 'product_type'
     
     upc = Column(BigInteger, ForeignKey('product.upc'), nullable=False, primary_key=True)
     id = Column(Integer, ForeignKey('product_type_tree.id'), nullable=False, primary_key=True)
+
+    def __repr__(self):
+        return "%s(upc=%r, id=%r)" % (self.__class__, self.upc, self.id)
 
 class Vendor(DeclarativeBase):
     __tablename__ = 'vendor'
@@ -291,6 +303,7 @@ class StoreHours(DeclarativeBase):
 
 def insert_product_type(session, nodes):
     parent_row = session.query(ProductTypeTree).filter_by(lft=0).first()
+    rows = [parent_row]
     for curr_node in nodes:
         curr_row = session.query(ProductTypeTree).filter_by(name=curr_node).first()
         if curr_row is None:
@@ -324,4 +337,6 @@ def insert_product_type(session, nodes):
                 curr_row = ProductTypeTree(name=curr_node, lft=max_right+1, rgt=max_right+2)
             session.add(curr_row)
             session.flush()
+        rows.append(curr_row)
         parent_row = curr_row
+    return rows
