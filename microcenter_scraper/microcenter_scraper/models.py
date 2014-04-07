@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, Column, BigInteger, Integer, Numeric, String, Text, Date, Time, DateTime, Sequence, CheckConstraint, ForeignKey, ForeignKeyConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.engine.url import URL
+from sqlalchemy.exc import IntegrityError
 
 import settings
 
@@ -15,6 +16,20 @@ def db_connect():
 
 def create_tables(engine):
     DeclarativeBase.metadata.create_all(engine)
+
+def get_or_create(session, model, **kwargs):
+    instance = None
+    try:
+        instance = session.query(model).filter_by(**kwargs).first()
+        if instance is None:
+            instance = model(**kwargs)
+            session.add(instance)
+            session.flush()
+    except:
+        session.rollback()
+        session.close()
+        raise
+    return instance
 
 class Customer(DeclarativeBase):
     """Sqlalchemy cusomter model"""
@@ -110,30 +125,32 @@ class Brand(DeclarativeBase):
     __tablename__ = 'brand'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
+    name = Column(String(100), nullable=False, unique=True)
 
 class Product(DeclarativeBase):
     __tablename__ = 'product'
     __table_args__ = (
         CheckConstraint("size in ('S', 'M', 'L')"),
+        CheckConstraint('unit_price > 0')
     )
 
     upc = Column(BigInteger, primary_key=True)
     name = Column(String(100), nullable=False)
-    description = Column(Text, nullable=False)
+    desc = Column(Text, nullable=False)
     size = Column(String(1))
     brand = Column(Integer, ForeignKey('brand.id'))
+    unit_price = Column(Numeric, nullable=False)
 
 class ProductTypeTree(DeclarativeBase):
     __tablename__ = 'product_type_tree'
     __table_args__ = (
-        CheckConstraint('lft > 0'),
+        CheckConstraint('lft >= 0'),
         CheckConstraint('rgt > 0'),
         CheckConstraint('lft < rgt')
     )
 
-    type = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
     lft = Column(Integer, nullable=False)
     rgt = Column(Integer, nullable=True)
 
@@ -141,7 +158,7 @@ class ProductType(DeclarativeBase):
     __tablename__ = 'product_type'
     
     upc = Column(BigInteger, ForeignKey('product.upc'), nullable=False, primary_key=True)
-    id = Column(Integer, ForeignKey('product_type_tree.type'), nullable=False, primary_key=True)
+    id = Column(Integer, ForeignKey('product_type_tree.id'), nullable=False, primary_key=True)
 
 class Vendor(DeclarativeBase):
     __tablename__ = 'vendor'
@@ -209,7 +226,6 @@ class Stock(DeclarativeBase):
     __tablename__ = 'stock'
     __table_args__ = (
         CheckConstraint('amount >= 0'),
-        CheckConstraint('unit_price > 0')
     )
 
     store_id = Column(Integer, ForeignKey('store.id'),
@@ -217,7 +233,7 @@ class Stock(DeclarativeBase):
     upc = Column(BigInteger, ForeignKey('product.upc'),
                  nullable=False, primary_key=True)
     amount = Column(Integer, nullable=False)
-    unit_price = Column(Numeric, nullable=False)
+
 
 class Shelf(DeclarativeBase):
     __tablename__ = 'shelf'
@@ -272,3 +288,40 @@ class StoreHours(DeclarativeBase):
     day_of_week = Column(String(2), nullable=False, primary_key=True)
     open_hour = Column(Time, nullable=False)
     close_hour = Column(Time, nullable=False)
+
+def insert_product_type(session, nodes):
+    parent_row = session.query(ProductTypeTree).filter_by(lft=0).first()
+    for curr_node in nodes:
+        curr_row = session.query(ProductTypeTree).filter_by(name=curr_node).first()
+        if curr_row is None:
+            children = session.execute("SELECT  hc.name, hc.lft, hc.rgt \
+                                       FROM    product_type_tree hp \
+                                       JOIN    product_type_tree hc \
+                                       ON      hc.lft BETWEEN hp.lft AND hp.rgt \
+                                       WHERE   hp.id = %d \
+                                       AND \
+                                       ( \
+                                       SELECT  COUNT(*) \
+                                       FROM    product_type_tree hn \
+                                       WHERE   hc.lft BETWEEN hn.lft AND hn.rgt \
+                                       AND hn.lft BETWEEN hp.lft AND hp.rgt \
+                                       ) = (SELECT COUNT(*) \
+                                       FROM product_type_tree hn \
+                                       WHERE hc.lft BETWEEN hn.lft AND hn.rgt \
+                                       AND hn.lft BETWEEN hp.lft AND hp.rgt AND hn.id = %d )+1" % ((parent_row.id,)*2))
+            if children.rowcount == 0:
+                rgts_to_update = session.query(ProductTypeTree).filter(ProductTypeTree.rgt > parent_row.lft).update({ProductTypeTree.rgt: ProductTypeTree.rgt+2})
+
+                lfts_to_update = session.query(ProductTypeTree).filter(ProductTypeTree.lft > parent_row.lft).update({ProductTypeTree.lft: ProductTypeTree.lft+2})
+
+                curr_row = ProductTypeTree(name=curr_node, lft=parent_row.lft+1, rgt=parent_row.lft+2)
+            else:
+                max_right = max([x.rgt for x in children])
+                rgts_to_update = session.query(ProductTypeTree).filter(ProductTypeTree.rgt > max_right).update({ProductTypeTree.rgt: ProductTypeTree.rgt + 2})
+
+                lfts_to_update = session.query(ProductTypeTree).filter(ProductTypeTree.lft > max_right).update({ProductTypeTree.lft: ProductTypeTree.lft + 2})
+
+                curr_row = ProductTypeTree(name=curr_node, lft=max_right+1, rgt=max_right+2)
+            session.add(curr_row)
+            session.flush()
+        parent_row = curr_row
