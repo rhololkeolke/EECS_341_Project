@@ -13,3 +13,5 @@ NEWSPIDER_MODULE = 'microcenter_scraper.spiders'
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 #USER_AGENT = 'microcenter_scraper (+http://www.yourdomain.com)'
+
+from database_settings import DATABASE
