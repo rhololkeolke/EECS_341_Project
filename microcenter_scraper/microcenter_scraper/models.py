@@ -47,11 +47,6 @@ class Customer(DeclarativeBase):
     gender = Column(String(1))
     join_date = Column(Date)
     loyalty_points = Column(Integer)
-    street1 = Column(String(100))
-    street2 = Column(String(100))
-    city = Column(String(100))
-    state = Column(String(2))
-    zip = Column(Integer)
 
 class CustomerEmail(DeclarativeBase):
     __tablename__ = 'customer_email'
@@ -100,6 +95,7 @@ class ShippingLocation(DeclarativeBase):
     id = Column(Integer, primary_key=True)
     loyalty_number = Column(Integer, ForeignKey('customer.loyalty_number'), 
                             nullable=False, primary_key=True)
+    name = Column(String(100), nullable=False)
     street1 = Column(String(100), nullable=False)
     street2 = Column(String(100))
     city = Column(String(100), nullable=False)
