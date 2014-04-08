@@ -42,4 +42,10 @@ class MicrocenterProductSpider(CrawlSpider):
             print """ERROR int(''.join(map(strip, sel.xpath('//div[@id="detail-list"]/dl/dd[last()]/text()').extract()))): """, ''.join(map(strip, sel.xpath('//div[@id="detail-list"]/dl/dd[last()]/text()').extract()))
             return
 
+        specifications = sel.xpath('//article[@id="tab-specs"]//tr[@class="spec-body"]')
+        product['specs'] = []
+        for spec in specifications:
+            product['specs'].append([' '.join(spec.xpath('th/text()').extract()), 
+                                     ' '.join(spec.xpath('td/text()').extract())])
+
         return product

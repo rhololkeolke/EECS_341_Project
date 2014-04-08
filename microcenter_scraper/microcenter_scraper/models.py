@@ -271,7 +271,7 @@ class ProductSpec(DeclarativeBase):
     upc = Column(BigInteger, ForeignKey('product.upc'),
                  nullable=False, primary_key=True)
     desc = Column(String(100), nullable=False, primary_key=True)
-    value = Column(String(100), nullable=False, primary_key=True)
+    value = Column(Text, nullable=False, primary_key=True)
 
 class Supplies(DeclarativeBase):
     __tablename__ = 'supplies'

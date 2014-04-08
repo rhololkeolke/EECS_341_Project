@@ -12,3 +12,4 @@ class Product(Item):
     brand = Field()
     price = Field()
     category = Field()
+    specs = Field()

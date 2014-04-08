@@ -4,7 +4,7 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
 from sqlalchemy.orm import sessionmaker
-from models import db_connect, create_tables, get_or_create, insert_product_type, Product, Brand, ProductType, ProductTypeTree
+from models import db_connect, create_tables, get_or_create, insert_product_type, Product, Brand, ProductType, ProductTypeTree, ProductSpec
 
 import random
 
@@ -42,10 +42,8 @@ class MicrocenterProductPipeline(object):
             session.flush()
         else:
             print "Brand existed"
-        print brand
 
         categories = insert_product_type(session, item['category'])
-        print categories
 
         product = session.query(Product).filter_by(upc=item['upc']).first()
         if product is None:
@@ -69,6 +67,19 @@ class MicrocenterProductPipeline(object):
                 session.flush()
             else:
                 print "Product type exists"
+
+        # add specifications for the product
+        print "len(specs):", len(item['specs'])
+        for spec in item['specs']:
+            product_spec = session.query(ProductSpec).filter_by(upc=product.upc,
+                                                                desc=spec[0],
+                                                                value=spec[1]).first()
+            if product_spec is None:
+                product_spec = ProductSpec(upc=product.upc,
+                                           desc=spec[0],
+                                           value=spec[1])
+                session.add(product_spec)
+                session.flush()
 
         session.commit()
         session.close()
