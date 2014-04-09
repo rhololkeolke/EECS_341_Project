@@ -11,16 +11,9 @@ import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
 import com.googlecode.lanterna.input.Key;
 
-public class MainWindow extends Window {
+public class MainWindow extends MicrocenterWindow {
 	public MainWindow(final GUIScreen guiScreen) {
-		super("Microcenter Store Application");
-		
-		Panel mainPanel = new Panel();
-		
-		mainPanel.addComponent(new MenuPanel(false, false, false));
-		
-		mainPanel.addComponent(new Label(""));
-		mainPanel.addComponent(new Label(""));
+		super(guiScreen, "Microcenter Store Application", false, false, true);
 		
 		Panel actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();
@@ -30,39 +23,7 @@ public class MainWindow extends Window {
 		actionListBox.addAction(new ActionListBoxItem(guiScreen, "Customers"));
 		actionListBox.addAction(new ActionListBoxItem(guiScreen, "Database"));
         actionsPanel.addComponent(actionListBox);
-        mainPanel.addComponent(actionsPanel);
-        
-        mainPanel.addShortcut(Key.Kind.Escape, new CloseAction());
-        mainPanel.addShortcut('c', true, false, new Action() {
-        	@Override
-        	public void doAction() {
-        		MessageBox.showMessageBox(guiScreen, "Checkout", "Not yet implemented");
-        	}
-        });
-        
-        mainPanel.addShortcut('l', true, false, new Action() {
-        	@Override
-        	public void doAction() {
-        		MessageBox.showMessageBox(guiScreen, "Login", "Not yet implemented");
-        	}
-        });
-        
-        mainPanel.addShortcut('r', true, false, new Action() {
-        	@Override
-        	public void doAction() {
-        		MessageBox.showMessageBox(guiScreen, "Register", "Not yet implemented");
-        	}
-        });
-        
-        addComponent(mainPanel);
-
-	}
-	
-	private class CloseAction implements Action {
-		@Override
-		public void doAction() {
-			MainWindow.this.close();
-		}
+        addComponent(actionsPanel);
 	}
 	
 	private class ActionListBoxItem implements Action {
