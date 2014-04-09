@@ -17,6 +17,17 @@ public class WindowManager {
 		windows.pop();
 	}
 	
+	public static int stackSize() {
+		return windows.size();
+	}
+	
+	public static void exitToMain() {
+		while(windows.size() > 1)
+		{
+			windows.peek().close();
+		}
+	}
+	
 	public static void refreshWindow() {
 		windows.peek().refresh();
 	}
