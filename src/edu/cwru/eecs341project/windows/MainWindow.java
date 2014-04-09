@@ -6,6 +6,7 @@ import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.Window;
 import com.googlecode.lanterna.gui.component.ActionListBox;
 import com.googlecode.lanterna.gui.component.Button;
+import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
 import com.googlecode.lanterna.input.Key;
@@ -18,10 +19,14 @@ public class MainWindow extends Window {
 		
 		Panel menuBar = new Panel(new Border.Bevel(true), Panel.Orientation.HORISONTAL);
 		menuBar.addComponent(new Button("Exit (Esc)", new CloseAction()));
+		menuBar.addComponent(new Label("              "));
 		menuBar.addComponent(new Button("Checkout (Ctrl-C)")); // TODO: Implement hiding and action
 		menuBar.addComponent(new Button("Login (Ctrl-l)")); // TODO: Implement hiding and action
 		menuBar.addComponent(new Button("Register (Ctrl-r)")); // TODO: Implement hiding and action
 		mainPanel.addComponent(menuBar);
+		
+		mainPanel.addComponent(new Label(""));
+		mainPanel.addComponent(new Label(""));
 		
 		Panel actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();
