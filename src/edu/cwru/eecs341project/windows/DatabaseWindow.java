@@ -1,10 +1,13 @@
 package edu.cwru.eecs341project.windows;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.GUIScreen;
@@ -14,6 +17,7 @@ import com.googlecode.lanterna.gui.component.EditArea;
 import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.component.TextArea;
+import com.googlecode.lanterna.gui.dialog.ListSelectDialog;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
 
 import edu.cwru.eecs341project.GlobalState;
@@ -158,6 +162,23 @@ public class DatabaseWindow extends MicrocenterWindow {
         		guiScreen.showWindow(new RawQueryWindow(guiScreen), GUIScreen.Position.FULL_SCREEN);
         	} else if(label.equals("Show Tables")) {
         		
+        		List<String> tableNames = new ArrayList<String>();
+        		Connection dbConnection = GlobalState.getDBConnection();
+        		DatabaseMetaData md = null;
+        		ResultSet rs = null;
+        		try {
+        			md = dbConnection.getMetaData();
+        			rs = md.getTables(null, null, "%", null);
+        			while(rs.next()) {
+        				tableNames.add(rs.getString(3));
+        			}
+        		} catch(SQLException e) {
+        			MessageBox.showMessageBox(guiScreen, "ERROR getting list of tables", e.getMessage());
+        			return;
+        		}
+        		
+        		String selectedTable = (String)ListSelectDialog.showDialog(guiScreen, "Table Names", "List of tables in the database", tableNames.toArray());
+        		System.out.println(selectedTable);
         	} else if(label.equals("Show Table Schmea")) {
         		
         	}
