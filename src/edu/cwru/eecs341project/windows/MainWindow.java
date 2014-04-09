@@ -17,13 +17,7 @@ public class MainWindow extends Window {
 		
 		Panel mainPanel = new Panel();
 		
-		Panel menuBar = new Panel(new Border.Bevel(true), Panel.Orientation.HORISONTAL);
-		menuBar.addComponent(new Label("Exit (Esc)"));
-		menuBar.addComponent(new Label("              "));
-		menuBar.addComponent(new Label("Checkout (Ctrl-C)")); // TODO: Implement hiding and action
-		menuBar.addComponent(new Label("Login (Ctrl-l)")); // TODO: Implement hiding and action
-		menuBar.addComponent(new Label("Register (Ctrl-r)")); // TODO: Implement hiding and action
-		mainPanel.addComponent(menuBar);
+		mainPanel.addComponent(new MenuPanel(false, false, false));
 		
 		mainPanel.addComponent(new Label(""));
 		mainPanel.addComponent(new Label(""));
