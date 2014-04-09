@@ -12,17 +12,17 @@ import com.googlecode.lanterna.gui.dialog.MessageBox;
 import com.googlecode.lanterna.input.Key;
 
 public class MainWindow extends Window {
-	public MainWindow(GUIScreen guiScreen) {
+	public MainWindow(final GUIScreen guiScreen) {
 		super("Microcenter Store Application");
 		
 		Panel mainPanel = new Panel();
 		
 		Panel menuBar = new Panel(new Border.Bevel(true), Panel.Orientation.HORISONTAL);
-		menuBar.addComponent(new Button("Exit (Esc)", new CloseAction()));
+		menuBar.addComponent(new Label("Exit (Esc)"));
 		menuBar.addComponent(new Label("              "));
-		menuBar.addComponent(new Button("Checkout (Ctrl-C)")); // TODO: Implement hiding and action
-		menuBar.addComponent(new Button("Login (Ctrl-l)")); // TODO: Implement hiding and action
-		menuBar.addComponent(new Button("Register (Ctrl-r)")); // TODO: Implement hiding and action
+		menuBar.addComponent(new Label("Checkout (Ctrl-C)")); // TODO: Implement hiding and action
+		menuBar.addComponent(new Label("Login (Ctrl-l)")); // TODO: Implement hiding and action
+		menuBar.addComponent(new Label("Register (Ctrl-r)")); // TODO: Implement hiding and action
 		mainPanel.addComponent(menuBar);
 		
 		mainPanel.addComponent(new Label(""));
@@ -39,6 +39,26 @@ public class MainWindow extends Window {
         mainPanel.addComponent(actionsPanel);
         
         mainPanel.addShortcut(Key.Kind.Escape, new CloseAction());
+        mainPanel.addShortcut('c', true, false, new Action() {
+        	@Override
+        	public void doAction() {
+        		MessageBox.showMessageBox(guiScreen, "Checkout", "Not yet implemented");
+        	}
+        });
+        
+        mainPanel.addShortcut('l', true, false, new Action() {
+        	@Override
+        	public void doAction() {
+        		MessageBox.showMessageBox(guiScreen, "Login", "Not yet implemented");
+        	}
+        });
+        
+        mainPanel.addShortcut('r', true, false, new Action() {
+        	@Override
+        	public void doAction() {
+        		MessageBox.showMessageBox(guiScreen, "Register", "Not yet implemented");
+        	}
+        });
         
         addComponent(mainPanel);
 
