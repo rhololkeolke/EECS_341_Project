@@ -52,6 +52,8 @@ public class MainWindow extends MicrocenterWindow {
         	if(label.equals("User Management"))
         	{
         		guiScreen.showWindow(new UserManagementWindow(guiScreen, "User Management", false), GUIScreen.Position.FULL_SCREEN);
+        	} else if(label.equals("Database")) {
+        		guiScreen.showWindow(new DatabaseWindow(guiScreen, "Database"), GUIScreen.Position.FULL_SCREEN);
         	} else {
         		MessageBox.showMessageBox(owner, "Action", "Selected " + label);
         	}
