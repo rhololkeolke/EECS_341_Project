@@ -9,11 +9,9 @@ import com.googlecode.lanterna.gui.dialog.MessageBox;
 public class UserManagementWindow extends MicrocenterWindow {
 	
 	private Panel actionsPanel;
-	private final GUIScreen guiScreen;
 
 	public UserManagementWindow(GUIScreen guiScreen, String label, boolean checkout) {
 		super(guiScreen, label, true, checkout);
-		this.guiScreen = guiScreen;
 		
 		actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();

@@ -10,11 +10,9 @@ import edu.cwru.eecs341project.GlobalState;
 
 public class MainWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
-	private final GUIScreen guiScreen;
 	
 	public MainWindow(GUIScreen guiScreen) {
 		super(guiScreen, "Microcenter Store Application", false, false);
-		this.guiScreen = guiScreen;
 		
 		updateActionList();
 	}
