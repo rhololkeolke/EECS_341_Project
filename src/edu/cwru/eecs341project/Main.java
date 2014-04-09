@@ -3,6 +3,8 @@ package edu.cwru.eecs341project;
 import com.googlecode.lanterna.TerminalFacade;
 import com.googlecode.lanterna.gui.GUIScreen;
 
+import edu.cwru.eecs341project.windows.MainWindow;
+
 
 public class Main {
 	public static void main(String[] args) {
@@ -13,12 +15,7 @@ public class Main {
 		    }
 		    textGUI.getScreen().startScreen();
 
-		    try {
-		    	Thread.sleep(5000);
-		    } catch(InterruptedException e) {
-		    	textGUI.getScreen().stopScreen();
-		    	System.exit(0);
-		    }
+		    textGUI.showWindow(new MainWindow(), GUIScreen.Position.FULL_SCREEN);
 		    
 		    textGUI.getScreen().stopScreen();
 	 }
