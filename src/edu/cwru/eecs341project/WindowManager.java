@@ -1,7 +1,5 @@
 package edu.cwru.eecs341project;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Stack;
 
 import edu.cwru.eecs341project.windows.ManagedWindow;
