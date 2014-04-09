@@ -1,0 +1,3 @@
+microcenter_scraper/microcenter_scraper/database_settings.py filter=git-crypt diff=git-crypt
+data/database_settings.py filter=git-crypt diff=git-crypt
+db_settings.xml filter=git-crypt diff=git-crypt
