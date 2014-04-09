@@ -1,23 +1,41 @@
 package edu.cwru.eecs341project.windows;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.Component;
 import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.Window;
-import com.googlecode.lanterna.gui.component.Button;
 import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
 import com.googlecode.lanterna.gui.layout.LayoutParameter;
 import com.googlecode.lanterna.input.Key;
 
+import edu.cwru.eecs341project.AddedComponent;
+import edu.cwru.eecs341project.GlobalState;
+
 public class MicrocenterWindow extends Window{
 	private Panel mainPanel;
-	public MicrocenterWindow(final GUIScreen guiScreen, String label, boolean back, boolean checkout, boolean login) {
+	private MenuPanel menuPanel;
+	private boolean back, checkout;
+	
+	private List<AddedComponent> addedComponents;
+	
+	public MicrocenterWindow(final GUIScreen guiScreen, String label, boolean back, boolean checkout) {
 		super(label);
+		
+		this.back = back;
+		this.checkout = checkout;
+		
+		addedComponents = new ArrayList<AddedComponent>();
+		
 		mainPanel = new Panel();
 		
-		mainPanel.addComponent(new MenuPanel(false, false, false));
+		boolean showLogin = (GlobalState.getUserRole() == GlobalState.UserRole.ANONYMOUS ? true : false);
+		menuPanel = new MenuPanel(back, checkout, showLogin);
+		mainPanel.addComponent(menuPanel);
 		
 		mainPanel.addComponent(new Label(""));
 		mainPanel.addComponent(new Label(""));
@@ -39,6 +57,7 @@ public class MicrocenterWindow extends Window{
         	@Override
         	public void doAction() {
         		MessageBox.showMessageBox(guiScreen, "Login", "Not yet implemented");
+        		MicrocenterWindow.this.refreshMenu();
         	}
         });
         
@@ -56,7 +75,43 @@ public class MicrocenterWindow extends Window{
 	public void addComponent(Component component, LayoutParameter... layoutParameters)
     {
 		super.removeComponent(mainPanel);
+		addedComponents.add(new AddedComponent(component, layoutParameters));
 		mainPanel.addComponent(component, layoutParameters);
 		super.addComponent(mainPanel);
     }
+	
+	public void refreshMenu(){
+		mainPanel.removeAllComponents();
+		boolean showLogin = (GlobalState.getUserRole() == GlobalState.UserRole.ANONYMOUS ? true : false);
+		menuPanel = new MenuPanel(back, checkout, showLogin);
+		mainPanel.addComponent(menuPanel);
+		mainPanel.addComponent(new Label(""));
+		mainPanel.addComponent(new Label(""));
+		for(AddedComponent addedComponent : addedComponents)
+		{
+			mainPanel.addComponent(addedComponent.component, addedComponent.layoutParameters);
+		}
+	}
+	
+	@Override
+	public void removeComponent(Component component)
+	{
+		mainPanel.removeComponent(component);
+		// loop until found in the list and then remove
+		for(int i=0; i<addedComponents.size(); i++)
+		{
+			if(addedComponents.get(i).equals(component))
+			{
+				addedComponents.remove(i);
+				break;
+			}
+		}
+	}
+	
+	@Override
+	public void removeAllComponents()
+	{
+		addedComponents = new ArrayList<AddedComponent>();
+		refreshMenu();
+	}
 }

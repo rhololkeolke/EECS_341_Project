@@ -13,7 +13,7 @@ import com.googlecode.lanterna.input.Key;
 
 public class MainWindow extends MicrocenterWindow {
 	public MainWindow(final GUIScreen guiScreen) {
-		super(guiScreen, "Microcenter Store Application", false, false, true);
+		super(guiScreen, "Microcenter Store Application", false, false);
 		
 		Panel actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();
