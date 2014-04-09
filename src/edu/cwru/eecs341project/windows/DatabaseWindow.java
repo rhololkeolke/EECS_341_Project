@@ -50,9 +50,7 @@ public class DatabaseWindow extends MicrocenterWindow {
 	
 			inputPanel.addComponent(new Button("Execute", new Action() {
 				@Override
-				public void doAction() {
-					//MessageBox.showMessageBox(guiScreen, "Query Result", "Executing");
-					
+				public void doAction() {					
 					Connection dbConnection = GlobalState.getDBConnection();
 					String result = "";
 					try {
@@ -84,9 +82,11 @@ public class DatabaseWindow extends MicrocenterWindow {
 			
 			while(rs.next())
 			{
-				for(int i=1; i<rsmd.getColumnCount(); i++)
+				for(int i=1; i<=rsmd.getColumnCount(); i++)
 				{
-					maxColLength[i-1] = Math.max(maxColLength[i-1], rs.getString(i).length());
+					String columnText = rs.getString(i);
+					if(columnText != null)
+						maxColLength[i-1] = Math.max(maxColLength[i-1], rs.getString(i).length());
 				}
 			}
 			rs.beforeFirst(); // reset the result cursor
@@ -117,8 +117,17 @@ public class DatabaseWindow extends MicrocenterWindow {
 				sb.append("|");
 				for(int i=1; i<=rsmd.getColumnCount(); i++)
 				{
-					sb.append(" " + rs.getString(i));
-					for(int j=0; j<maxColLength[i-1] - rs.getString(i).length(); j++)
+					String columnText = rs.getString(i);
+					int columnLength = 0;
+					if(columnText == null)
+					{
+						sb.append(" ");
+						columnLength = 0;
+					} else {
+						sb.append(" " + rs.getString(i));
+						columnLength = columnText.length();
+					}
+					for(int j=0; j<maxColLength[i-1] - columnLength; j++)
 					{
 						sb.append(" ");
 					}
