@@ -33,8 +33,7 @@ public class MicrocenterWindow extends Window{
 		
 		mainPanel = new Panel();
 		
-		boolean showLogin = (GlobalState.getUserRole() == GlobalState.UserRole.ANONYMOUS ? true : false);
-		menuPanel = new MenuPanel(back, checkout, showLogin);
+		menuPanel = new MenuPanel(back, checkout);
 		mainPanel.addComponent(menuPanel);
 		
 		mainPanel.addComponent(new Label(""));
@@ -56,7 +55,13 @@ public class MicrocenterWindow extends Window{
         mainPanel.addShortcut('l', true, false, new Action() {
         	@Override
         	public void doAction() {
-        		MessageBox.showMessageBox(guiScreen, "Login", "Not yet implemented");
+        		if(GlobalState.getUserRole() == GlobalState.UserRole.ANONYMOUS)
+        		{
+        			MessageBox.showMessageBox(guiScreen, "Login", "No user accounts setup. Automatically logging in as DBA");
+        			GlobalState.setUserRole(GlobalState.UserRole.DBA);
+        		} else {
+        			GlobalState.setUserRole(GlobalState.UserRole.ANONYMOUS);
+        		}
         		MicrocenterWindow.this.refreshMenu();
         	}
         });
@@ -83,7 +88,7 @@ public class MicrocenterWindow extends Window{
 	public void refreshMenu(){
 		mainPanel.removeAllComponents();
 		boolean showLogin = (GlobalState.getUserRole() == GlobalState.UserRole.ANONYMOUS ? true : false);
-		menuPanel = new MenuPanel(back, checkout, showLogin);
+		menuPanel = new MenuPanel(back, checkout);
 		mainPanel.addComponent(menuPanel);
 		mainPanel.addComponent(new Label(""));
 		mainPanel.addComponent(new Label(""));
