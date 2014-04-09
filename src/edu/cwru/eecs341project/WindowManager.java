@@ -3,8 +3,6 @@ package edu.cwru.eecs341project;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.googlecode.lanterna.gui.Window;
-
 import edu.cwru.eecs341project.windows.ManagedWindow;
 
 public class WindowManager {
