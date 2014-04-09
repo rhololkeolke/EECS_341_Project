@@ -51,7 +51,12 @@ public class MainWindow extends MicrocenterWindow {
         }
 
         public void doAction() {
-            MessageBox.showMessageBox(owner, "Action", "Selected " + label);
+        	if(label.equals("User Management"))
+        	{
+        		guiScreen.showWindow(new UserManagementWindow(guiScreen, "User Management", false), GUIScreen.Position.FULL_SCREEN);
+        	} else {
+        		MessageBox.showMessageBox(owner, "Action", "Selected " + label);
+        	}
         }
 	}
 	
