@@ -65,4 +65,10 @@ public class MainWindow extends MicrocenterWindow {
 		updateActionList();
 		super.refresh();
 	}
+	
+	@Override
+	public void close() {
+		GlobalState.closeDBConnection();
+		super.close();
+	}
 }

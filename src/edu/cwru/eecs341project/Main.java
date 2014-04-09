@@ -15,6 +15,8 @@ public class Main {
 		    }
 		    textGUI.getScreen().startScreen();
 		    
+		    GlobalState.getDBConnection();
+		    
 		    textGUI.showWindow(new MainWindow(textGUI), GUIScreen.Position.FULL_SCREEN);
 		    
 		    textGUI.getScreen().stopScreen();
