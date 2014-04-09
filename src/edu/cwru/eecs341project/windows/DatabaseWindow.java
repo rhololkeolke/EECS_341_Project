@@ -1,5 +1,11 @@
 package edu.cwru.eecs341project.windows;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+
 import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.component.ActionListBox;
@@ -9,8 +15,8 @@ import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.component.TextArea;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
-import com.googlecode.lanterna.terminal.TerminalSize;
 
+import edu.cwru.eecs341project.GlobalState;
 import edu.cwru.eecs341project.WindowManager;
 
 public class DatabaseWindow extends MicrocenterWindow {
@@ -39,23 +45,89 @@ public class DatabaseWindow extends MicrocenterWindow {
 			
 			inputPanel = new Panel();
 			inputPanel.addComponent(new Label("Enter a query to execute"));
-			queryBox = new EditArea(guiScreen.getScreen().getTerminalSize(), "SELECT * FROM customer LIMIT 10");
+			queryBox = new EditArea(guiScreen.getScreen().getTerminalSize(), "SELECT * FROM customer LIMIT 10;");
 			inputPanel.addComponent(queryBox);
 	
 			inputPanel.addComponent(new Button("Execute", new Action() {
 				@Override
 				public void doAction() {
-					MessageBox.showMessageBox(guiScreen, "Query Result", "Executing");
+					//MessageBox.showMessageBox(guiScreen, "Query Result", "Executing");
 					
-					// TODO actually execute query here
+					Connection dbConnection = GlobalState.getDBConnection();
+					String result = "";
+					try {
+						Statement st = dbConnection.createStatement(ResultSet.TYPE_SCROLL_SENSITIVE, ResultSet.CONCUR_READ_ONLY);
+						ResultSet queryResult = st.executeQuery(queryBox.getData());
+						result = resultsToString(queryResult);
+						queryResult.close();
+						st.close();
+					} catch(SQLException e) {
+						result = "ERROR executing query:\n" + e.getMessage();
+					}
 					
 					inputPanel.removeComponent(queryResult);
-					queryResult = new TextArea(guiScreen.getScreen().getTerminalSize(), "Not yet implemented\ntesting new line");
+					queryResult = new TextArea(guiScreen.getScreen().getTerminalSize(), result);
 					inputPanel.addComponent(queryResult);
 					WindowManager.refreshWindow();
 				}
 			}));
 			addComponent(inputPanel);
+		}
+		
+		private String resultsToString(ResultSet rs) throws SQLException{
+			ResultSetMetaData rsmd = rs.getMetaData();
+			int[] maxColLength = new int[rsmd.getColumnCount()];
+			for(int i=1; i<=rsmd.getColumnCount(); i++)
+			{
+				maxColLength[i-1] = rsmd.getColumnLabel(i).length();
+			}
+			
+			while(rs.next())
+			{
+				for(int i=1; i<rsmd.getColumnCount(); i++)
+				{
+					maxColLength[i-1] = Math.max(maxColLength[i-1], rs.getString(i).length());
+				}
+			}
+			rs.beforeFirst(); // reset the result cursor
+			StringBuilder sb = new StringBuilder();
+			sb.append("|");
+			for(int i=1; i<=rsmd.getColumnCount(); i++)
+			{
+				sb.append(" " + rsmd.getColumnLabel(i));
+				for(int j=0; j<maxColLength[i-1] - rsmd.getColumnLabel(i).length(); j++)
+				{
+					sb.append(" ");
+				}
+				sb.append(" |");
+			}
+			sb.append("\n");
+			sb.append("-");
+			for(int i=1; i<=rsmd.getColumnCount(); i++)
+			{
+				for(int j=0; j<maxColLength[i-1] + 3; j++)
+				{
+					sb.append("-");
+				}
+			}
+			sb.append("\n");
+			
+			while(rs.next())
+			{
+				sb.append("|");
+				for(int i=1; i<=rsmd.getColumnCount(); i++)
+				{
+					sb.append(" " + rs.getString(i));
+					for(int j=0; j<maxColLength[i-1] - rs.getString(i).length(); j++)
+					{
+						sb.append(" ");
+					}
+					sb.append(" |");
+				}
+				sb.append("\n");
+			}
+			
+			return sb.toString();
 		}
 	}
 	
