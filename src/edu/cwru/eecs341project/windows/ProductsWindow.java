@@ -24,7 +24,6 @@ public class ProductsWindow extends MicrocenterWindow {
 	}
 	
 	private class ActionListBoxItem implements Action {
-        private GUIScreen owner;
         private String label;
 
         public ActionListBoxItem(String label) {
