@@ -21,6 +21,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	private Panel mainPanel;
 	private MenuPanel menuPanel;
 	private boolean back, checkout;
+	protected final GUIScreen guiScreen;
 	
 	private List<AddedComponent> addedComponents;
 	
@@ -29,6 +30,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 		
 		this.back = back;
 		this.checkout = checkout;
+		this.guiScreen = guiScreen;
 		
 		addedComponents = new ArrayList<AddedComponent>();
 		
@@ -63,7 +65,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         		} else {
         			GlobalState.setUserRole(GlobalState.UserRole.ANONYMOUS);
         		}
-        		WindowManager.refreshAllWindows();
+        		WindowManager.refreshWindow();
         	}
         });
         
@@ -75,7 +77,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         });
         		
 		super.addComponent(mainPanel);
-		WindowManager.addWindow(this);
+		WindowManager.pushWindow(this);
 	}
 	
 	@Override
@@ -120,5 +122,12 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	{
 		addedComponents = new ArrayList<AddedComponent>();
 		refresh();
+	}
+	
+	@Override
+	public void close()
+	{
+		WindowManager.popWindow();
+		super.close();
 	}
 }
