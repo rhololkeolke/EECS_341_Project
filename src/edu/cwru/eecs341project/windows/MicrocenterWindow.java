@@ -64,6 +64,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         			GlobalState.setUserRole(GlobalState.UserRole.DBA);
         		} else {
         			GlobalState.setUserRole(GlobalState.UserRole.ANONYMOUS);
+        			WindowManager.exitToMain();
         		}
         		WindowManager.refreshWindow();
         	}
