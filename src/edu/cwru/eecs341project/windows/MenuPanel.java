@@ -1,7 +1,6 @@
 package edu.cwru.eecs341project.windows;
 
 import com.googlecode.lanterna.gui.Border;
-import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
 

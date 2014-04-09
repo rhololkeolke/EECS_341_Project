@@ -15,8 +15,9 @@ import com.googlecode.lanterna.input.Key;
 
 import edu.cwru.eecs341project.AddedComponent;
 import edu.cwru.eecs341project.GlobalState;
+import edu.cwru.eecs341project.WindowManager;
 
-public class MicrocenterWindow extends Window{
+public class MicrocenterWindow extends Window implements ManagedWindow{
 	private Panel mainPanel;
 	private MenuPanel menuPanel;
 	private boolean back, checkout;
@@ -62,7 +63,7 @@ public class MicrocenterWindow extends Window{
         		} else {
         			GlobalState.setUserRole(GlobalState.UserRole.ANONYMOUS);
         		}
-        		MicrocenterWindow.this.refreshMenu();
+        		WindowManager.refreshAllWindows();
         	}
         });
         
@@ -74,6 +75,7 @@ public class MicrocenterWindow extends Window{
         });
         		
 		super.addComponent(mainPanel);
+		WindowManager.addWindow(this);
 	}
 	
 	@Override
@@ -85,9 +87,9 @@ public class MicrocenterWindow extends Window{
 		super.addComponent(mainPanel);
     }
 	
-	public void refreshMenu(){
+	@Override
+	public void refresh(){
 		mainPanel.removeAllComponents();
-		boolean showLogin = (GlobalState.getUserRole() == GlobalState.UserRole.ANONYMOUS ? true : false);
 		menuPanel = new MenuPanel(back, checkout);
 		mainPanel.addComponent(menuPanel);
 		mainPanel.addComponent(new Label(""));
@@ -117,6 +119,6 @@ public class MicrocenterWindow extends Window{
 	public void removeAllComponents()
 	{
 		addedComponents = new ArrayList<AddedComponent>();
-		refreshMenu();
+		refresh();
 	}
 }

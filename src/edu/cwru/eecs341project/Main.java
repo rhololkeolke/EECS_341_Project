@@ -14,7 +14,7 @@ public class Main {
 		        return;
 		    }
 		    textGUI.getScreen().startScreen();
-
+		    
 		    textGUI.showWindow(new MainWindow(textGUI), GUIScreen.Position.FULL_SCREEN);
 		    
 		    textGUI.getScreen().stopScreen();
