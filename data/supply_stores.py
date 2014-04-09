@@ -1,8 +1,5 @@
 #!/usr/bin/python
-
-from sqlalchemy import create_engine, Column, BigInteger, Integer, Numeric, String, Text, Date, Time, DateTime, Sequence, CheckConstraint, ForeignKey, ForeignKeyConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.engine.url import URL
+from models import db_connect, create_tables, Store, Product, Vendor, VendorPurchase, Supplies, Brand
 from sqlalchemy.orm import sessionmaker
 
 from database_settings import DATABASE
@@ -33,92 +30,6 @@ def strTimeProp(start, end, format, prop):
 
 def randomDate(start, end, prop):
     return strTimeProp(start, end, '%m/%d/%Y', prop)
-
-
-def db_connect():
-    """
-    Performs database connection using database settings from settings.py
-    Returns sqlalchemy engine instance
-    """
-    return create_engine(URL(**DATABASE))
-
-def create_tables(engine):
-    DeclarativeBase.metadata.create_all(engine)
-
-class Store(DeclarativeBase):
-    __tablename__ = 'store'
-    
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
-    opening_date = Column(Date, nullable=False)
-    street1 = Column(String(100), nullable=False)
-    street2 = Column(String(100))
-    city = Column(String(100), nullable=False)
-    state = Column(String(2), nullable=False)
-    zip = Column(Integer, nullable=False)
-
-class Product(DeclarativeBase):
-    __tablename__ = 'product'
-    __table_args__ = (
-        CheckConstraint("size in ('S', 'M', 'L')"),
-        CheckConstraint('unit_price > 0')
-    )
-
-    upc = Column(BigInteger, primary_key=True)
-    name = Column(String(100), nullable=False)
-    desc = Column(Text, nullable=False)
-    size = Column(String(1))
-    brand = Column(Integer, ForeignKey('brand.id'))
-    unit_price = Column(Numeric, nullable=False)
-
-    def __repr__(self):
-        return "%s(upc=%r, name=%r, brand=%r, price=%r)" % (self.__class__, self.upc, self.name, self.brand, self.unit_price)
-
-class Vendor(DeclarativeBase):
-    __tablename__ = 'vendor'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
-    street1 = Column(String(100), nullable=False)
-    street2 = Column(String(100))
-    city = Column(String(100), nullable=False)
-    state = Column(String(2), nullable=False)
-    zip = Column(Integer, nullable=False)
-
-class VendorPurchase(DeclarativeBase):
-    __tablename__ = 'vendor_purchase'
-    __table_args__ = (
-        CheckConstraint('amount > 0'),
-        CheckConstraint('unit_price > 0')
-    )
-
-    store_id = Column(Integer, ForeignKey('store.id'),
-                      nullable=False, primary_key=True)
-    vendor_id = Column(Integer, ForeignKey('vendor.id'),
-                       nullable=False, primary_key=True)
-    upc = Column(BigInteger, ForeignKey('product.upc'),
-                 nullable=False, primary_key=True)
-    purchase_date = Column(Date, nullable=False, primary_key=True)
-    amount = Column(Integer, nullable=False)
-    unit_price = Column(Numeric, nullable=False)
-
-class Supplies(DeclarativeBase):
-    __tablename__ = 'supplies'
-    
-    vendor_id = Column(Integer, ForeignKey('vendor.id'),
-                       nullable=False, primary_key=True)
-    brand_id = Column(Integer, ForeignKey('brand.id'),
-                      nullable=False, primary_key=True)
-
-class Brand(DeclarativeBase):
-    __tablename__ = 'brand'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False, unique=True)
-
-    def __repr__(self):
-        return "%s(id=%r, name=%r)" % (self.__class__, self.id, self.name)
-
 
 if __name__ == '__main__':
     engine = db_connect()

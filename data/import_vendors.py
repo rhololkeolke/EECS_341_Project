@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
-from sqlalchemy import create_engine, Column, BigInteger, Integer, Numeric, String, Text, Date, Time, DateTime, Sequence, CheckConstraint, ForeignKey, ForeignKeyConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.engine.url import URL
+from models import db_connect, create_tables, Vendor, VendorPhone
 from sqlalchemy.orm import sessionmaker
 
 from database_settings import DATABASE
@@ -11,38 +9,6 @@ import random
 import datetime
 import time
 import string
-
-DeclarativeBase = declarative_base()
-
-class Vendor(DeclarativeBase):
-    __tablename__ = 'vendor'
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
-    street1 = Column(String(100), nullable=False)
-    street2 = Column(String(100))
-    city = Column(String(100), nullable=False)
-    state = Column(String(2), nullable=False)
-    zip = Column(Integer, nullable=False)
-
-class VendorPhone(DeclarativeBase):
-    __tablename__ = 'vendor_phone'
-    __table_args__ = (
-        CheckConstraint("phone LIKE '(___)___-____'"),
-    )
-
-    vendor_id = Column(Integer, ForeignKey('vendor.id'), nullable=False, primary_key=True)
-    phone = Column(String(13), nullable=False, primary_key=True)
-
-def db_connect():
-    """
-    Performs database connection using database settings from settings.py
-    Returns sqlalchemy engine instance
-    """
-    return create_engine(URL(**DATABASE))
-
-def create_tables(engine):
-    DeclarativeBase.metadata.create_all(engine)
 
 if __name__ == '__main__':
     import sys

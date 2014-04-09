@@ -1,7 +1,5 @@
 #!/usr/bin/python
-from sqlalchemy import create_engine, Column, BigInteger, Integer, Numeric, String, Text, Date, Time, DateTime, Sequence, CheckConstraint, ForeignKey, ForeignKeyConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.engine.url import URL
+from models import db_connect, create_tables, Customer, CustomerEmail, CustomerPhone, ShippingLocation
 from sqlalchemy.orm import sessionmaker
 
 from database_settings import DATABASE
@@ -9,12 +7,7 @@ from database_settings import DATABASE
 import random
 import datetime
 import time
-
-DeclarativeBase = declarative_base()
-
-import random
 import string
-import time
 
 email_domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'aol.com']
 
@@ -37,66 +30,6 @@ def strTimeProp(start, end, format, prop):
 
 def randomDate(start, end, prop):
     return strTimeProp(start, end, '%m/%d/%Y', prop)
-
-def db_connect():
-    """
-    Performs database connection using database settings from settings.py
-    Returns sqlalchemy engine instance
-    """
-    return create_engine(URL(**DATABASE))
-
-def create_tables(engine):
-    DeclarativeBase.metadata.create_all(engine)
-
-class Customer(DeclarativeBase):
-    """Sqlalchemy cusomter model"""
-    __tablename__ = "customer"
-    __table_args__ = (
-        CheckConstraint("gender IN ('M', 'F')"),
-        CheckConstraint("loyalty_points >= 0")
-    )
-
-    loyalty_number = Column(Integer, primary_key=True)
-    first_name = Column(String(100))
-    middle_initial = Column(String(1))
-    last_name = Column(String(100))
-    birthdate = Column(Date)
-    gender = Column(String(1))
-    join_date = Column(Date)
-    loyalty_points = Column(Integer)
-
-class CustomerEmail(DeclarativeBase):
-    __tablename__ = 'customer_email'
-    __table_args__ = (
-        CheckConstraint("email LIKE '_%@_%._%'"),
-    )
-
-    loyalty_number = Column(Integer, ForeignKey('customer.loyalty_number'), 
-                            nullable=False, primary_key=True)
-    email = Column(String, primary_key=True, nullable=False)
-
-class CustomerPhone(DeclarativeBase):
-    __tablename__ = 'customer_phone'
-    __table_args__ = (
-        CheckConstraint("phone LIKE '(___)___-____'"),
-    )
-
-    loyalty_number = Column(Integer, ForeignKey('customer.loyalty_number'),
-                            nullable=False, primary_key=True)
-    phone = Column(String(13), primary_key=True, nullable=False)
-
-class ShippingLocation(DeclarativeBase):
-    __tablename__ = 'shipping_location'
-    
-    id = Column(Integer, primary_key=True)
-    loyalty_number = Column(Integer, ForeignKey('customer.loyalty_number'), 
-                            nullable=False, primary_key=True)
-    name = Column(String(100), nullable=False)
-    street1 = Column(String(100), nullable=False)
-    street2 = Column(String(100))
-    city = Column(String(100), nullable=False)
-    state = Column(String(2), nullable=False)
-    zip = Column(Integer, nullable=False)
 
 if __name__ == '__main__':
     import sys
