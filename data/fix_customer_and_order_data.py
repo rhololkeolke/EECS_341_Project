@@ -44,32 +44,32 @@ if __name__ == '__main__':
                                 todays_datetime.day)
 
     # get all customers who have their first order less than the store's opening date
-    first_order_results = session.execute('''WITH min_order_date(loyalty_number, date) AS
-                                                  (SELECT o.loyalty_number, min(o.order_date)
-                                                   FROM orders as o
-                                                   GROUP BY o.loyalty_number),
-                                                  first_order(loyalty_number, id) AS
-                                                  (SELECT o.loyalty_number, min(o.id)
-                                                   FROM orders as o,
-                                                        min_order_date as mod
-                                                   WHERE o.loyalty_number = mod.loyalty_number AND
-                                                         o.order_date = mod.date
-                                                   GROUP BY o.loyalty_number)
-                                             SELECT o.loyalty_number, o.id, s.opening_date
-                                             FROM orders as o,
-                                                  store as s,
-                                                  first_order as fo
-                                             WHERE o.id = fo.id AND
-                                                   s.id = o.store_id AND
-                                                   o.order_date < s.opening_date
-                                             ORDER BY o.loyalty_number''')
-    first_orders = [r for r in first_order_results]
-    for i, first_order in enumerate(first_orders):
-        print "fixing first order %d of %d" % (i+1, len(first_orders))
-        order = session.query(Orders).filter_by(id=first_order.id).update({Orders.order_date: first_order.opening_date})
-        session.commit()
+    # first_order_results = session.execute('''WITH min_order_date(loyalty_number, date) AS
+    #                                               (SELECT o.loyalty_number, min(o.order_date)
+    #                                                FROM orders as o
+    #                                                GROUP BY o.loyalty_number),
+    #                                               first_order(loyalty_number, id) AS
+    #                                               (SELECT o.loyalty_number, min(o.id)
+    #                                                FROM orders as o,
+    #                                                     min_order_date as mod
+    #                                                WHERE o.loyalty_number = mod.loyalty_number AND
+    #                                                      o.order_date = mod.date
+    #                                                GROUP BY o.loyalty_number)
+    #                                          SELECT o.loyalty_number, o.id, s.opening_date
+    #                                          FROM orders as o,
+    #                                               store as s,
+    #                                               first_order as fo
+    #                                          WHERE o.id = fo.id AND
+    #                                                s.id = o.store_id AND
+    #                                                o.order_date < s.opening_date
+    #                                          ORDER BY o.loyalty_number''')
+    # first_orders = [r for r in first_order_results]
+    # for i, first_order in enumerate(first_orders):
+    #     print "fixing first order %d of %d" % (i+1, len(first_orders))
+    #     order = session.query(Orders).filter_by(id=first_order.id).update({Orders.order_date: first_order.opening_date})
+    #     session.commit()
 
-    bad_order_results = session.exeucte('''
+    bad_order_results = session.execute('''
                                  SELECT o.id, c.join_date
                                  FROM orders as o,
                                       customer as c
