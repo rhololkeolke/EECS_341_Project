@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from models import db_connect, create_table, Customer, Product, OrderItem, ReturnItem, Store, ShippingLocation, Orders, Stock, VendorPurchase, Brand, Vendor
+from models import db_connect, create_tables, Customer, Product, OrderItem, ReturnItem, Store, ShippingLocation, Orders, Stock, VendorPurchase, Brand, Vendor
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import desc
 
@@ -24,11 +24,42 @@ def strTimeProp(start, end, format, prop):
 
     ptime = stime + prop * (etime - stime)
 
-    return time.strftime(format, time.localtime(ptime))
+    tstruct = time.localtime(ptime)
+    return datetime.date(tstruct.tm_year, tstruct.tm_mon, tstruct.tm_mday)
 
+def randomDate(start, end):
+    return strTimeProp(start.strftime("%m/%d/%Y"), end.strftime("%m/%d/%Y"), '%m/%d/%Y', random.random())
 
-def randomDate(start, end, prop):
-    return strTimeProp(start, end, '%m/%d/%Y', prop)
+def generate_order_products(order, products):
+    # select a random amount of random products for this order
+    order_products = random.sample(products, random.randint(1, 20))
+    order_amounts = {}
+    for i, order_product in enumerate(order_products):
+        print "\t\tGenerating product %d of %d in order" % (i+1, len(order_products))
+        quantity = random.randint(1, 20)
+        order_amounts[order_product.upc] = quantity
+        discount = round(max(random.gauss(0, .1), 0), 2)
+        order_item = OrderItem(order_id=order.id,
+                               upc=order_product.upc,
+                               quantity=quantity,
+                               discount=discount)
+        session.add(order_item)
+
+    # for some probability return some items
+    if random.uniform(0, 1) < .05:
+        print "\t\tCustomer is returning items"
+        returned_products = random.sample(order_products, random.randint(1, len(order_products)))
+        for i, returned_product in enumerate(returned_products):
+            print "\t\t\tGenerating return %d of %d" % (i+1, len(returned_products))
+            quantity = random.randint(1, order_amounts[returned_product.upc])
+            return_date = randomDate(order.order_date,
+                                     order.order_date + datetime.timedelta(days=14))
+            return_item = ReturnItem(order_id=order.id,
+                                     upc=returned_product.upc,
+                                     return_date=return_date,
+                                     quantity=quantity)
+            session.add(return_item)
+    session.flush()
 
 if __name__ == '__main__':
     engine = db_connect()
@@ -45,74 +76,75 @@ if __name__ == '__main__':
 
     payment_types = ['visa', 'mastercard', 'american express', 'discover', 'cash', 'check', 'money order', 'gift card']
 
-    stores = session.query(Store).all()
+    stores = session.query(Store).filter("name != 'Website'").all()
     website = session.query(Store).filter_by(name='Website').first()
-    if website is None:
-        raise Exception("Could not find website store")
+
     customers = session.query(Customer).all()
-    for store in stores:
-        # get all product's oldest order date as well as total amount ordered over time
-        product_amounts_results = session.execute(' '.join(['SELECT upc, MIN(purchase_date) as first_order, SUM(amount) as total_amount',
-                                                            'FROM vendor_purchase',
-                                                            'WHERE store_id = %d' % store.id,
-                                                            'GROUP BY upc']))
+    products = session.query(Product).all()
 
-        # turn the results into a list of easier access
-        product_amounts_result = [r for r in product_amounts_results]
+    for cust_index, customer in enumerate(customers):
+        print "starting customer %d of %d" % (cust_index+1, len(customers))
+        # see if customer already has a first order
+        # if so assume that orders have already been generated for this customer
+        # so skip
+        first_order = session.query(Orders).filter_by(order_date=customer.join_date,
+                                                      loyalty_number=customer.loyalty_number).first()
+        if first_order is not None:
+            print "customer %d already has orders" % (cust_index+1)
+            continue
 
-        # construct a list of sorted minimum dates
-        oldest_order_dates = [r.first_order for r in product_amounts_result]
-        oldest_order_dates.sort()
-        oldest_order_dates.append(todays_date)
-
-        # for each date construct the total amount of product available up until that time
-        # the indices of product available will match minimum dates and the elements will be dicts of upc to product amounts
-        product_available_by_date = []
-        for order_date in oldest_order_dates:
-            product_avail_results = session.execute(' '.join('SELECT upc, SUM(amount) as total_amount',
-                                                                 'FROM vendor_purchase',
-                                                                 'WHERE store_id = %d AND' % store.id,
-                                                                 "purchase_date < to_date(%s, 'YYYY/MM/DD')" % order_date.strftime('%Y/%m/%d'),
-                                                                 'group by upc'))
-            product_available = {}
-            for product_avail_row in product_avail_results:
-                product_available[product_avail_row.upc] = product_avail_row.total_amount
-            product_available_by_date.append(product_available)
+        customer_store = random.choice(stores)
+        shipping_locs = session.query(ShippingLocation).filter_by(loyalty_number=customer.loyalty_number).all()
         
-        # subtract off what is in stock from the last element
-        stock = session.query(Stock).filter_by(store_id=store.id).all()
-        for stocked_product in stock:
-            product_available_by_date[-1][stocked_product.upc] = product_available_by_date[-1][stocked_product.upc] - stocked_product.amount
+        print "\tGenerating first order"
+        first_order_store = None
+        if random.uniform(0,1) > .5:
+            first_order_store = website
+        else:
+            first_order_store = customer_store
 
-        # go through and remove items that have already been ordered
-        orders = session.query(Orders).filter_by(store_id=store.id).order_by(Orders.order_date).all()
-        product_avail_diff = [{}]*len(orders)
-        i = 0
-        for order in orders:
-            # find the index for this order
-            while oldest_order_dates[i] < order.order_date:
-                i = i + 1
-                if i >= len(olest_order_dates):
-                    i = len(oldest_order_dates)
-                    break
-            i = i - 1 # back off one to get the latest oldest date less than order date
-            
-            # for each product in the order update the diff list
-            order_products = session.query(OrderItem).filter_by(order_id=order.id).all()
-            for order_product in order_products:
-                product_avail_diff[i][order_product.upc] = product_avail_diff[i][order_product.upc] + order_product.quantity
-                
-            return_items = session.query(ReturnItem).filter_by(order_id=order.id).order_by(ReturnItem.return_date).all()
-            j = i
-            for return_item in return_items:
-                # find the index for this return
-                while oldest_order_dates[j] < return_item.return_date:
-                    j = j +1
-                    if j >= len(oldest_order_dates):
-                        j = len(oldest_order_dates)
-                        break
-                j = j - 1 # back off one to get the latest oldest date less than return date
-                
-            
-            
-    session.close()
+        first_order = Orders(order_date=customer.join_date,
+                             store_id=first_order_store.id,
+                             loyalty_number=customer.loyalty_number,
+                             payment_type=random.choice(payment_types))
+        if first_order_store.name == 'Website':
+            first_order.shipping_loc = random.choice(shipping_locs).id
+            first_order.shipping_cost = round(random.uniform(5, 20), 2)
+
+        session.add(first_order)
+        session.flush()
+
+        generate_order_products(first_order, products)
+                       
+        num_orders = random.randint(0, 50)
+        last_order_date = customer.join_date
+        for i in range(num_orders):
+            print "\tGenerating order %d of %d" % (i+1, num_orders)
+            # choose the order for the store
+            order_store = customer_store
+            # if the customer's first order was online
+            # make it more probable that they are ordering online again
+            website_prob = None
+            if first_order_store.name == 'Website':
+                website_prob = .9
+            else:
+                website_prob = .1
+
+            if random.uniform(0, 1) < website_prob:
+                order_store = website
+
+            order_date = randomDate(last_order_date, todays_date)
+            order = Orders(order_date=order_date,
+                           store_id=order_store.id,
+                           loyalty_number=customer.loyalty_number,
+                           payment_type=random.choice(payment_types))
+            if order_store.name == 'Website':
+                order.shipping_loc = random.choice(shipping_locs).id
+                order.shipping_cost = round(random.uniform(5, 20), 2)
+
+            session.add(order)
+            session.flush()
+
+            generate_order_products(order, products)
+
+        session.commit()
