@@ -64,9 +64,7 @@ if __name__ == '__main__':
                                                    o.order_date < s.opening_date
                                              ORDER BY o.loyalty_number''')
     for first_order in first_order_results:
-        order = session.query(Orders).filter_by(id=first_order.id)
-        order.order_date = first_order.opening_date
-        session.add(order)
+        order = session.query(Orders).filter_by(id=first_order.id).update({Orders.order_date: first_order.opening_date})
         session.commit()
 
     bad_orders = session.exeucte('''
@@ -76,9 +74,7 @@ if __name__ == '__main__':
                                  WHERE o.loyalty_number = c.loyalty_number AND
                                        o.order_date < c.join_date''')
     for bad_order in bad_orders:
-        order = session.query(Orders).filter_by(id=bad_order.id)
-        order.order_date = randomDate(bad_order.join_date, todays_date)
-        session.add(order)
+        order = session.query(Orders).filter_by(id=bad_order.id).update({Orders.order_date: randomDate(bad_order.join_date, todays_date)})
         session.commit()
         
     bad_orders = session.execute('''
@@ -88,9 +84,7 @@ if __name__ == '__main__':
                                  WHERE o.store_id = s.id AND
                                        o.order_date < s.opening_date''')
     for bad_order in bad_orders:
-        order = session.query(Orders).filter_by(id=bad_order.id)
-        order.order_date = randomDate(bad_order.opening_date, todays_date)
-        session.add(order)
+        order = session.query(Orders).filter_by(id=bad_order.id).update({Orders.order_date: randomDate(bad_order.opening_date, todays_date)})
         session.commit()
 
     session.close()
