@@ -33,11 +33,33 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE brand (
-    name character varying(30) NOT NULL
+    id integer NOT NULL,
+    name character varying(100) NOT NULL
 );
 
 
 ALTER TABLE public.brand OWNER TO rhol;
+
+--
+-- Name: brand_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
+--
+
+CREATE SEQUENCE brand_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.brand_id_seq OWNER TO rhol;
+
+--
+-- Name: brand_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+--
+
+ALTER SEQUENCE brand_id_seq OWNED BY brand.id;
+
 
 --
 -- Name: customer; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
@@ -45,19 +67,14 @@ ALTER TABLE public.brand OWNER TO rhol;
 
 CREATE TABLE customer (
     loyalty_number integer NOT NULL,
-    first_name character varying(20),
-    middle_initial character(1),
-    last_name character varying(20),
+    first_name character varying(100),
+    middle_initial character varying(1),
+    last_name character varying(100),
     birthdate date,
-    gender character(1),
+    gender character varying(1),
     join_date date,
     loyalty_points integer,
-    street1 character varying(20),
-    street2 character varying(20),
-    zip integer,
-    city character varying(20),
-    state character(2),
-    CONSTRAINT customer_gender_check CHECK ((gender = ANY (ARRAY['M'::bpchar, 'F'::bpchar]))),
+    CONSTRAINT customer_gender_check CHECK (((gender)::text = ANY (ARRAY[('M'::character varying)::text, ('F'::character varying)::text]))),
     CONSTRAINT customer_loyalty_points_check CHECK ((loyalty_points >= 0))
 );
 
@@ -70,7 +87,8 @@ ALTER TABLE public.customer OWNER TO rhol;
 
 CREATE TABLE customer_email (
     loyalty_number integer NOT NULL,
-    email character varying(50) NOT NULL
+    email character varying NOT NULL,
+    CONSTRAINT customer_email_email_check CHECK (((email)::text ~~ '_%@_%._%'::text))
 );
 
 
@@ -116,9 +134,10 @@ ALTER TABLE public.customer_phone OWNER TO rhol;
 
 CREATE TABLE order_item (
     order_id integer NOT NULL,
-    upc integer NOT NULL,
+    upc bigint NOT NULL,
     quantity integer NOT NULL,
-    discount numeric,
+    discount numeric NOT NULL,
+    CONSTRAINT order_item_discount_check CHECK (((discount >= 0.0) AND (discount <= 1.0))),
     CONSTRAINT order_item_quantity_check CHECK ((quantity > 0))
 );
 
@@ -130,24 +149,24 @@ ALTER TABLE public.order_item OWNER TO rhol;
 --
 
 CREATE TABLE orders (
-    order_id integer NOT NULL,
-    order_date date NOT NULL,
+    id integer NOT NULL,
+    order_date timestamp without time zone NOT NULL,
     store_id integer NOT NULL,
     loyalty_number integer NOT NULL,
-    payment_type character varying(20) NOT NULL,
-    shipping_loc_id integer,
+    payment_type character varying(100) NOT NULL,
+    shipping_loc integer,
     shipping_cost numeric,
-    CONSTRAINT orders_check CHECK ((((shipping_loc_id IS NOT NULL) AND (shipping_cost IS NOT NULL)) OR ((shipping_loc_id IS NULL) AND (shipping_cost IS NULL))))
+    CONSTRAINT orders_check CHECK ((((shipping_loc IS NOT NULL) AND (shipping_cost IS NOT NULL)) OR ((shipping_loc IS NULL) AND ((shipping_cost IS NULL) OR (shipping_cost = (0)::numeric)))))
 );
 
 
 ALTER TABLE public.orders OWNER TO rhol;
 
 --
--- Name: orders_order_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
+-- Name: orders_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
 --
 
-CREATE SEQUENCE orders_order_id_seq
+CREATE SEQUENCE orders_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -155,13 +174,13 @@ CREATE SEQUENCE orders_order_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.orders_order_id_seq OWNER TO rhol;
+ALTER TABLE public.orders_id_seq OWNER TO rhol;
 
 --
--- Name: orders_order_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+-- Name: orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
 --
 
-ALTER SEQUENCE orders_order_id_seq OWNED BY orders.order_id;
+ALTER SEQUENCE orders_id_seq OWNED BY orders.id;
 
 
 --
@@ -171,10 +190,12 @@ ALTER SEQUENCE orders_order_id_seq OWNED BY orders.order_id;
 CREATE TABLE product (
     upc bigint NOT NULL,
     name character varying(100) NOT NULL,
-    description text NOT NULL,
-    size character(1),
-    brand character varying(30),
-    CONSTRAINT product_size_check CHECK ((size = ANY (ARRAY['S'::bpchar, 'M'::bpchar, 'L'::bpchar])))
+    "desc" text NOT NULL,
+    size character varying(1),
+    brand integer,
+    unit_price numeric NOT NULL,
+    CONSTRAINT product_size_check CHECK (((size)::text = ANY (ARRAY[('S'::character varying)::text, ('M'::character varying)::text, ('L'::character varying)::text]))),
+    CONSTRAINT product_unit_price_check CHECK ((unit_price > (0)::numeric))
 );
 
 
@@ -185,11 +206,10 @@ ALTER TABLE public.product OWNER TO rhol;
 --
 
 CREATE TABLE product_location (
-    store_id integer NOT NULL,
-    upc integer NOT NULL,
     shelf_id integer NOT NULL,
-    amount integer,
-    CONSTRAINT product_location_amount_check CHECK ((amount >= 0))
+    upc bigint NOT NULL,
+    amount integer NOT NULL,
+    CONSTRAINT product_location_amount_check CHECK ((amount > 0))
 );
 
 
@@ -201,9 +221,8 @@ ALTER TABLE public.product_location OWNER TO rhol;
 
 CREATE TABLE product_spec (
     upc bigint NOT NULL,
-    type character varying(50) NOT NULL,
-    amount numeric NOT NULL,
-    unit character varying(20) NOT NULL
+    "desc" character varying(100) NOT NULL,
+    value text NOT NULL
 );
 
 
@@ -215,32 +234,34 @@ ALTER TABLE public.product_spec OWNER TO rhol;
 
 CREATE TABLE product_type (
     upc bigint NOT NULL,
-    type_id integer NOT NULL
+    id integer NOT NULL
 );
 
 
 ALTER TABLE public.product_type OWNER TO rhol;
 
 --
--- Name: product_type_class; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
+-- Name: product_type_tree; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
 --
 
-CREATE TABLE product_type_class (
-    type_id integer NOT NULL,
-    name character varying(30) NOT NULL,
-    parent_category integer,
+CREATE TABLE product_type_tree (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
     lft integer NOT NULL,
-    rgt integer NOT NULL
+    rgt integer,
+    CONSTRAINT product_type_tree_check CHECK ((lft < rgt)),
+    CONSTRAINT product_type_tree_lft_check CHECK ((lft >= 0)),
+    CONSTRAINT product_type_tree_rgt_check CHECK ((rgt > 0))
 );
 
 
-ALTER TABLE public.product_type_class OWNER TO rhol;
+ALTER TABLE public.product_type_tree OWNER TO rhol;
 
 --
--- Name: product_type_class_type_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
+-- Name: product_type_tree_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
 --
 
-CREATE SEQUENCE product_type_class_type_id_seq
+CREATE SEQUENCE product_type_tree_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -248,13 +269,34 @@ CREATE SEQUENCE product_type_class_type_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.product_type_class_type_id_seq OWNER TO rhol;
+ALTER TABLE public.product_type_tree_id_seq OWNER TO rhol;
 
 --
--- Name: product_type_class_type_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+-- Name: product_type_tree_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
 --
 
-ALTER SEQUENCE product_type_class_type_id_seq OWNED BY product_type_class.type_id;
+ALTER SEQUENCE product_type_tree_id_seq OWNED BY product_type_tree.id;
+
+
+--
+-- Name: product_upc_seq; Type: SEQUENCE; Schema: public; Owner: rhol
+--
+
+CREATE SEQUENCE product_upc_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.product_upc_seq OWNER TO rhol;
+
+--
+-- Name: product_upc_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+--
+
+ALTER SEQUENCE product_upc_seq OWNED BY product.upc;
 
 
 --
@@ -273,27 +315,22 @@ CREATE TABLE return_item (
 ALTER TABLE public.return_item OWNER TO rhol;
 
 --
--- Name: shipping_location; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
+-- Name: shelf; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
 --
 
-CREATE TABLE shipping_location (
-    shipping_loc_id integer NOT NULL,
-    loyalty_number integer NOT NULL,
-    street1 character varying(20) NOT NULL,
-    street2 character varying(20),
-    city character varying(20) NOT NULL,
-    state character(2) NOT NULL,
-    zip integer NOT NULL
+CREATE TABLE shelf (
+    id integer NOT NULL,
+    store_id integer NOT NULL
 );
 
 
-ALTER TABLE public.shipping_location OWNER TO rhol;
+ALTER TABLE public.shelf OWNER TO rhol;
 
 --
--- Name: shipping_location_shipping_loc_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
+-- Name: shelf_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
 --
 
-CREATE SEQUENCE shipping_location_shipping_loc_id_seq
+CREATE SEQUENCE shelf_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -301,13 +338,52 @@ CREATE SEQUENCE shipping_location_shipping_loc_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.shipping_location_shipping_loc_id_seq OWNER TO rhol;
+ALTER TABLE public.shelf_id_seq OWNER TO rhol;
 
 --
--- Name: shipping_location_shipping_loc_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+-- Name: shelf_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
 --
 
-ALTER SEQUENCE shipping_location_shipping_loc_id_seq OWNED BY shipping_location.shipping_loc_id;
+ALTER SEQUENCE shelf_id_seq OWNED BY shelf.id;
+
+
+--
+-- Name: shipping_location; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
+--
+
+CREATE TABLE shipping_location (
+    id integer NOT NULL,
+    loyalty_number integer NOT NULL,
+    street1 character varying(100) NOT NULL,
+    street2 character varying(100),
+    city character varying(100) NOT NULL,
+    state character varying(2) NOT NULL,
+    zip integer NOT NULL,
+    name character varying(100) NOT NULL
+);
+
+
+ALTER TABLE public.shipping_location OWNER TO rhol;
+
+--
+-- Name: shipping_location_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
+--
+
+CREATE SEQUENCE shipping_location_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.shipping_location_id_seq OWNER TO rhol;
+
+--
+-- Name: shipping_location_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+--
+
+ALTER SEQUENCE shipping_location_id_seq OWNED BY shipping_location.id;
 
 
 --
@@ -316,11 +392,9 @@ ALTER SEQUENCE shipping_location_shipping_loc_id_seq OWNED BY shipping_location.
 
 CREATE TABLE stock (
     store_id integer NOT NULL,
-    upc integer NOT NULL,
+    upc bigint NOT NULL,
     amount integer NOT NULL,
-    unit_price numeric NOT NULL,
-    CONSTRAINT stock_amount_check CHECK ((amount >= 0)),
-    CONSTRAINT stock_unit_price_check CHECK ((unit_price >= (0)::numeric))
+    CONSTRAINT stock_amount_check CHECK ((amount >= 0))
 );
 
 
@@ -331,14 +405,14 @@ ALTER TABLE public.stock OWNER TO rhol;
 --
 
 CREATE TABLE store (
-    store_id integer NOT NULL,
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
     opening_date date NOT NULL,
-    street1 character varying(50) NOT NULL,
-    street2 character varying(50),
-    city character varying(20) NOT NULL,
-    state character(2) NOT NULL,
-    zip integer NOT NULL,
-    name character varying(75)
+    street1 character varying(100) NOT NULL,
+    street2 character varying(100),
+    city character varying(100) NOT NULL,
+    state character varying(2) NOT NULL,
+    zip integer NOT NULL
 );
 
 
@@ -351,7 +425,7 @@ ALTER TABLE public.store OWNER TO rhol;
 CREATE TABLE store_closing (
     store_id integer NOT NULL,
     closed_date date NOT NULL,
-    description text
+    "desc" character varying(100)
 );
 
 
@@ -363,33 +437,20 @@ ALTER TABLE public.store_closing OWNER TO rhol;
 
 CREATE TABLE store_hours (
     store_id integer NOT NULL,
-    day_of_week character(2) NOT NULL,
-    open_hour time without time zone,
-    close_hour time without time zone,
-    CONSTRAINT store_hours_day_of_week_check CHECK ((day_of_week = ANY (ARRAY['M'::bpchar, 'Tu'::bpchar, 'W'::bpchar, 'Th'::bpchar, 'F'::bpchar, 'Sa'::bpchar, 'Su'::bpchar])))
+    day_of_week character varying(2) NOT NULL,
+    open_hour time without time zone NOT NULL,
+    close_hour time without time zone NOT NULL,
+    CONSTRAINT store_hours_day_of_week_check CHECK (((day_of_week)::text = ANY (ARRAY[('M'::character varying)::text, ('Tu'::character varying)::text, ('W'::character varying)::text, ('Th'::character varying)::text, ('F'::character varying)::text, ('Sa'::character varying)::text, ('Su'::character varying)::text])))
 );
 
 
 ALTER TABLE public.store_hours OWNER TO rhol;
 
 --
--- Name: store_phone; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
+-- Name: store_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
 --
 
-CREATE TABLE store_phone (
-    store_id integer NOT NULL,
-    phone character varying(13) NOT NULL,
-    CONSTRAINT store_phone_phone_check CHECK (((phone)::text ~~ '(___)___-____'::text))
-);
-
-
-ALTER TABLE public.store_phone OWNER TO rhol;
-
---
--- Name: store_store_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
---
-
-CREATE SEQUENCE store_store_id_seq
+CREATE SEQUENCE store_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -397,22 +458,35 @@ CREATE SEQUENCE store_store_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.store_store_id_seq OWNER TO rhol;
+ALTER TABLE public.store_id_seq OWNER TO rhol;
 
 --
--- Name: store_store_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+-- Name: store_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
 --
 
-ALTER SEQUENCE store_store_id_seq OWNED BY store.store_id;
+ALTER SEQUENCE store_id_seq OWNED BY store.id;
 
+
+--
+-- Name: store_phone; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
+--
+
+CREATE TABLE store_phone (
+    store_id integer NOT NULL,
+    phone character varying NOT NULL,
+    CONSTRAINT store_phone_phone_check CHECK (((phone)::text ~~ '(___)___-____'::text))
+);
+
+
+ALTER TABLE public.store_phone OWNER TO rhol;
 
 --
 -- Name: supplies; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
 --
 
 CREATE TABLE supplies (
-    vendor_name character varying(20) NOT NULL,
-    brand_name character varying(20) NOT NULL
+    vendor_id integer NOT NULL,
+    brand_id integer NOT NULL
 );
 
 
@@ -423,11 +497,12 @@ ALTER TABLE public.supplies OWNER TO rhol;
 --
 
 CREATE TABLE vendor (
-    name character varying(20) NOT NULL,
-    street1 character varying(20) NOT NULL,
-    street2 character varying(20),
-    city character varying(20) NOT NULL,
-    state character(2) NOT NULL,
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    street1 character varying(100) NOT NULL,
+    street2 character varying(100),
+    city character varying(100) NOT NULL,
+    state character varying(2) NOT NULL,
     zip integer NOT NULL
 );
 
@@ -435,11 +510,32 @@ CREATE TABLE vendor (
 ALTER TABLE public.vendor OWNER TO rhol;
 
 --
+-- Name: vendor_id_seq; Type: SEQUENCE; Schema: public; Owner: rhol
+--
+
+CREATE SEQUENCE vendor_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.vendor_id_seq OWNER TO rhol;
+
+--
+-- Name: vendor_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: rhol
+--
+
+ALTER SEQUENCE vendor_id_seq OWNED BY vendor.id;
+
+
+--
 -- Name: vendor_phone; Type: TABLE; Schema: public; Owner: rhol; Tablespace: 
 --
 
 CREATE TABLE vendor_phone (
-    vendor_name character varying(20) NOT NULL,
+    vendor_id integer NOT NULL,
     phone character varying(13) NOT NULL,
     CONSTRAINT vendor_phone_phone_check CHECK (((phone)::text ~~ '(___)___-____'::text))
 );
@@ -453,8 +549,8 @@ ALTER TABLE public.vendor_phone OWNER TO rhol;
 
 CREATE TABLE vendor_purchase (
     store_id integer NOT NULL,
-    vendor_name character varying(20) NOT NULL,
-    upc integer NOT NULL,
+    vendor_id integer NOT NULL,
+    upc bigint NOT NULL,
     purchase_date date NOT NULL,
     amount integer NOT NULL,
     unit_price numeric NOT NULL,
@@ -466,6 +562,13 @@ CREATE TABLE vendor_purchase (
 ALTER TABLE public.vendor_purchase OWNER TO rhol;
 
 --
+-- Name: id; Type: DEFAULT; Schema: public; Owner: rhol
+--
+
+ALTER TABLE ONLY brand ALTER COLUMN id SET DEFAULT nextval('brand_id_seq'::regclass);
+
+
+--
 -- Name: loyalty_number; Type: DEFAULT; Schema: public; Owner: rhol
 --
 
@@ -473,31 +576,60 @@ ALTER TABLE ONLY customer ALTER COLUMN loyalty_number SET DEFAULT nextval('custo
 
 
 --
--- Name: order_id; Type: DEFAULT; Schema: public; Owner: rhol
+-- Name: id; Type: DEFAULT; Schema: public; Owner: rhol
 --
 
-ALTER TABLE ONLY orders ALTER COLUMN order_id SET DEFAULT nextval('orders_order_id_seq'::regclass);
-
-
---
--- Name: type_id; Type: DEFAULT; Schema: public; Owner: rhol
---
-
-ALTER TABLE ONLY product_type_class ALTER COLUMN type_id SET DEFAULT nextval('product_type_class_type_id_seq'::regclass);
+ALTER TABLE ONLY orders ALTER COLUMN id SET DEFAULT nextval('orders_id_seq'::regclass);
 
 
 --
--- Name: shipping_loc_id; Type: DEFAULT; Schema: public; Owner: rhol
+-- Name: upc; Type: DEFAULT; Schema: public; Owner: rhol
 --
 
-ALTER TABLE ONLY shipping_location ALTER COLUMN shipping_loc_id SET DEFAULT nextval('shipping_location_shipping_loc_id_seq'::regclass);
+ALTER TABLE ONLY product ALTER COLUMN upc SET DEFAULT nextval('product_upc_seq'::regclass);
 
 
 --
--- Name: store_id; Type: DEFAULT; Schema: public; Owner: rhol
+-- Name: id; Type: DEFAULT; Schema: public; Owner: rhol
 --
 
-ALTER TABLE ONLY store ALTER COLUMN store_id SET DEFAULT nextval('store_store_id_seq'::regclass);
+ALTER TABLE ONLY product_type_tree ALTER COLUMN id SET DEFAULT nextval('product_type_tree_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: rhol
+--
+
+ALTER TABLE ONLY shelf ALTER COLUMN id SET DEFAULT nextval('shelf_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: rhol
+--
+
+ALTER TABLE ONLY shipping_location ALTER COLUMN id SET DEFAULT nextval('shipping_location_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: rhol
+--
+
+ALTER TABLE ONLY store ALTER COLUMN id SET DEFAULT nextval('store_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: rhol
+--
+
+ALTER TABLE ONLY vendor ALTER COLUMN id SET DEFAULT nextval('vendor_id_seq'::regclass);
+
+
+--
+-- Name: brand_name_key; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
+--
+
+ALTER TABLE ONLY brand
+    ADD CONSTRAINT brand_name_key UNIQUE (name);
 
 
 --
@@ -505,7 +637,7 @@ ALTER TABLE ONLY store ALTER COLUMN store_id SET DEFAULT nextval('store_store_id
 --
 
 ALTER TABLE ONLY brand
-    ADD CONSTRAINT brand_pkey PRIMARY KEY (name);
+    ADD CONSTRAINT brand_pkey PRIMARY KEY (id);
 
 
 --
@@ -545,7 +677,7 @@ ALTER TABLE ONLY order_item
 --
 
 ALTER TABLE ONLY orders
-    ADD CONSTRAINT orders_pkey PRIMARY KEY (order_id);
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
 
 
 --
@@ -553,7 +685,7 @@ ALTER TABLE ONLY orders
 --
 
 ALTER TABLE ONLY product_location
-    ADD CONSTRAINT product_location_pkey PRIMARY KEY (store_id, upc, shelf_id);
+    ADD CONSTRAINT product_location_pkey PRIMARY KEY (shelf_id, upc);
 
 
 --
@@ -569,23 +701,7 @@ ALTER TABLE ONLY product
 --
 
 ALTER TABLE ONLY product_spec
-    ADD CONSTRAINT product_spec_pkey PRIMARY KEY (upc, type, amount, unit);
-
-
---
--- Name: product_type_class_name_key; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
---
-
-ALTER TABLE ONLY product_type_class
-    ADD CONSTRAINT product_type_class_name_key UNIQUE (name);
-
-
---
--- Name: product_type_class_pkey; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
---
-
-ALTER TABLE ONLY product_type_class
-    ADD CONSTRAINT product_type_class_pkey PRIMARY KEY (type_id);
+    ADD CONSTRAINT product_spec_pkey PRIMARY KEY (upc, "desc", value);
 
 
 --
@@ -593,7 +709,23 @@ ALTER TABLE ONLY product_type_class
 --
 
 ALTER TABLE ONLY product_type
-    ADD CONSTRAINT product_type_pkey PRIMARY KEY (upc, type_id);
+    ADD CONSTRAINT product_type_pkey PRIMARY KEY (upc, id);
+
+
+--
+-- Name: product_type_tree_name_key; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
+--
+
+ALTER TABLE ONLY product_type_tree
+    ADD CONSTRAINT product_type_tree_name_key UNIQUE (name);
+
+
+--
+-- Name: product_type_tree_pkey; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
+--
+
+ALTER TABLE ONLY product_type_tree
+    ADD CONSTRAINT product_type_tree_pkey PRIMARY KEY (id);
 
 
 --
@@ -605,11 +737,19 @@ ALTER TABLE ONLY return_item
 
 
 --
+-- Name: shelf_pkey; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
+--
+
+ALTER TABLE ONLY shelf
+    ADD CONSTRAINT shelf_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: shipping_location_pkey; Type: CONSTRAINT; Schema: public; Owner: rhol; Tablespace: 
 --
 
 ALTER TABLE ONLY shipping_location
-    ADD CONSTRAINT shipping_location_pkey PRIMARY KEY (shipping_loc_id, loyalty_number);
+    ADD CONSTRAINT shipping_location_pkey PRIMARY KEY (id, loyalty_number);
 
 
 --
@@ -649,7 +789,7 @@ ALTER TABLE ONLY store_phone
 --
 
 ALTER TABLE ONLY store
-    ADD CONSTRAINT store_pkey PRIMARY KEY (store_id);
+    ADD CONSTRAINT store_pkey PRIMARY KEY (id);
 
 
 --
@@ -657,7 +797,7 @@ ALTER TABLE ONLY store
 --
 
 ALTER TABLE ONLY supplies
-    ADD CONSTRAINT supplies_pkey PRIMARY KEY (vendor_name, brand_name);
+    ADD CONSTRAINT supplies_pkey PRIMARY KEY (vendor_id, brand_id);
 
 
 --
@@ -665,7 +805,7 @@ ALTER TABLE ONLY supplies
 --
 
 ALTER TABLE ONLY vendor_phone
-    ADD CONSTRAINT vendor_phone_pkey PRIMARY KEY (vendor_name, phone);
+    ADD CONSTRAINT vendor_phone_pkey PRIMARY KEY (vendor_id, phone);
 
 
 --
@@ -673,7 +813,7 @@ ALTER TABLE ONLY vendor_phone
 --
 
 ALTER TABLE ONLY vendor
-    ADD CONSTRAINT vendor_pkey PRIMARY KEY (name);
+    ADD CONSTRAINT vendor_pkey PRIMARY KEY (id);
 
 
 --
@@ -681,7 +821,7 @@ ALTER TABLE ONLY vendor
 --
 
 ALTER TABLE ONLY vendor_purchase
-    ADD CONSTRAINT vendor_purchase_pkey PRIMARY KEY (store_id, vendor_name, upc, purchase_date);
+    ADD CONSTRAINT vendor_purchase_pkey PRIMARY KEY (store_id, vendor_id, upc, purchase_date);
 
 
 --
@@ -705,7 +845,7 @@ ALTER TABLE ONLY customer_phone
 --
 
 ALTER TABLE ONLY order_item
-    ADD CONSTRAINT order_item_order_id_fkey FOREIGN KEY (order_id) REFERENCES orders(order_id);
+    ADD CONSTRAINT order_item_order_id_fkey FOREIGN KEY (order_id) REFERENCES orders(id);
 
 
 --
@@ -725,11 +865,11 @@ ALTER TABLE ONLY orders
 
 
 --
--- Name: orders_shipping_loc_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+-- Name: orders_shipping_loc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
 --
 
 ALTER TABLE ONLY orders
-    ADD CONSTRAINT orders_shipping_loc_id_fkey FOREIGN KEY (shipping_loc_id, loyalty_number) REFERENCES shipping_location(shipping_loc_id, loyalty_number);
+    ADD CONSTRAINT orders_shipping_loc_fkey FOREIGN KEY (shipping_loc, loyalty_number) REFERENCES shipping_location(id, loyalty_number);
 
 
 --
@@ -737,7 +877,7 @@ ALTER TABLE ONLY orders
 --
 
 ALTER TABLE ONLY orders
-    ADD CONSTRAINT orders_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(store_id);
+    ADD CONSTRAINT orders_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(id);
 
 
 --
@@ -745,15 +885,15 @@ ALTER TABLE ONLY orders
 --
 
 ALTER TABLE ONLY product
-    ADD CONSTRAINT product_brand_fkey FOREIGN KEY (brand) REFERENCES brand(name);
+    ADD CONSTRAINT product_brand_fkey FOREIGN KEY (brand) REFERENCES brand(id);
 
 
 --
--- Name: product_location_store_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+-- Name: product_location_shelf_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
 --
 
 ALTER TABLE ONLY product_location
-    ADD CONSTRAINT product_location_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(store_id);
+    ADD CONSTRAINT product_location_shelf_id_fkey FOREIGN KEY (shelf_id) REFERENCES shelf(id);
 
 
 --
@@ -773,19 +913,11 @@ ALTER TABLE ONLY product_spec
 
 
 --
--- Name: product_type_class_parent_category_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
---
-
-ALTER TABLE ONLY product_type_class
-    ADD CONSTRAINT product_type_class_parent_category_fkey FOREIGN KEY (parent_category) REFERENCES product_type_class(type_id);
-
-
---
--- Name: product_type_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+-- Name: product_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
 --
 
 ALTER TABLE ONLY product_type
-    ADD CONSTRAINT product_type_type_id_fkey FOREIGN KEY (type_id) REFERENCES product_type_class(type_id);
+    ADD CONSTRAINT product_type_id_fkey FOREIGN KEY (id) REFERENCES product_type_tree(id);
 
 
 --
@@ -801,7 +933,7 @@ ALTER TABLE ONLY product_type
 --
 
 ALTER TABLE ONLY return_item
-    ADD CONSTRAINT return_item_order_id_fkey FOREIGN KEY (order_id) REFERENCES orders(order_id);
+    ADD CONSTRAINT return_item_order_id_fkey FOREIGN KEY (order_id) REFERENCES orders(id);
 
 
 --
@@ -810,6 +942,14 @@ ALTER TABLE ONLY return_item
 
 ALTER TABLE ONLY return_item
     ADD CONSTRAINT return_item_upc_fkey FOREIGN KEY (upc) REFERENCES product(upc);
+
+
+--
+-- Name: shelf_store_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+--
+
+ALTER TABLE ONLY shelf
+    ADD CONSTRAINT shelf_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(id);
 
 
 --
@@ -825,7 +965,7 @@ ALTER TABLE ONLY shipping_location
 --
 
 ALTER TABLE ONLY stock
-    ADD CONSTRAINT stock_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(store_id);
+    ADD CONSTRAINT stock_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(id);
 
 
 --
@@ -841,7 +981,7 @@ ALTER TABLE ONLY stock
 --
 
 ALTER TABLE ONLY store_closing
-    ADD CONSTRAINT store_closing_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(store_id);
+    ADD CONSTRAINT store_closing_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(id);
 
 
 --
@@ -849,7 +989,7 @@ ALTER TABLE ONLY store_closing
 --
 
 ALTER TABLE ONLY store_hours
-    ADD CONSTRAINT store_hours_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(store_id);
+    ADD CONSTRAINT store_hours_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(id);
 
 
 --
@@ -857,31 +997,31 @@ ALTER TABLE ONLY store_hours
 --
 
 ALTER TABLE ONLY store_phone
-    ADD CONSTRAINT store_phone_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(store_id);
+    ADD CONSTRAINT store_phone_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(id);
 
 
 --
--- Name: supplies_brand_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
---
-
-ALTER TABLE ONLY supplies
-    ADD CONSTRAINT supplies_brand_name_fkey FOREIGN KEY (brand_name) REFERENCES brand(name);
-
-
---
--- Name: supplies_vendor_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+-- Name: supplies_brand_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
 --
 
 ALTER TABLE ONLY supplies
-    ADD CONSTRAINT supplies_vendor_name_fkey FOREIGN KEY (vendor_name) REFERENCES vendor(name);
+    ADD CONSTRAINT supplies_brand_id_fkey FOREIGN KEY (brand_id) REFERENCES brand(id);
 
 
 --
--- Name: vendor_phone_vendor_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+-- Name: supplies_vendor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+--
+
+ALTER TABLE ONLY supplies
+    ADD CONSTRAINT supplies_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES vendor(id);
+
+
+--
+-- Name: vendor_phone_vendor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
 --
 
 ALTER TABLE ONLY vendor_phone
-    ADD CONSTRAINT vendor_phone_vendor_name_fkey FOREIGN KEY (vendor_name) REFERENCES vendor(name);
+    ADD CONSTRAINT vendor_phone_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES vendor(id);
 
 
 --
@@ -889,7 +1029,7 @@ ALTER TABLE ONLY vendor_phone
 --
 
 ALTER TABLE ONLY vendor_purchase
-    ADD CONSTRAINT vendor_purchase_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(store_id);
+    ADD CONSTRAINT vendor_purchase_store_id_fkey FOREIGN KEY (store_id) REFERENCES store(id);
 
 
 --
@@ -901,11 +1041,11 @@ ALTER TABLE ONLY vendor_purchase
 
 
 --
--- Name: vendor_purchase_vendor_name_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
+-- Name: vendor_purchase_vendor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: rhol
 --
 
 ALTER TABLE ONLY vendor_purchase
-    ADD CONSTRAINT vendor_purchase_vendor_name_fkey FOREIGN KEY (vendor_name) REFERENCES vendor(name);
+    ADD CONSTRAINT vendor_purchase_vendor_id_fkey FOREIGN KEY (vendor_id) REFERENCES vendor(id);
 
 
 --
