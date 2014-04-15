@@ -63,7 +63,8 @@ if __name__ == '__main__':
                                                    s.id = o.store_id AND
                                                    o.order_date < s.opening_date
                                              ORDER BY o.loyalty_number''')
-    for first_order in first_order_results:
+    for i, first_order in enumerate(first_order_results):
+        print "fixing first order %d of %d" % (i+1, len(first_order_results))
         order = session.query(Orders).filter_by(id=first_order.id).update({Orders.order_date: first_order.opening_date})
         session.commit()
 
@@ -74,6 +75,7 @@ if __name__ == '__main__':
                                  WHERE o.loyalty_number = c.loyalty_number AND
                                        o.order_date < c.join_date''')
     for bad_order in bad_orders:
+        print "fixing bad order %d of %d" % (i+1, len(bad_orders))
         order = session.query(Orders).filter_by(id=bad_order.id).update({Orders.order_date: randomDate(bad_order.join_date, todays_date)})
         session.commit()
         
@@ -84,6 +86,7 @@ if __name__ == '__main__':
                                  WHERE o.store_id = s.id AND
                                        o.order_date < s.opening_date''')
     for bad_order in bad_orders:
+        print "Fixing bad order %d of %d" % (i+1, len(bad_orders))
         order = session.query(Orders).filter_by(id=bad_order.id).update({Orders.order_date: randomDate(bad_order.opening_date, todays_date)})
         session.commit()
 
