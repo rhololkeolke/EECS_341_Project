@@ -80,7 +80,19 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         		
         		// otherwise login
         		String username = TextInputDialog.showTextInputBox(guiScreen, "Username", "Enter your username", "");
+        		
+        		if(username == null)
+        		{
+        			// user canceled
+        			return;
+        		}
         		String password = TextInputDialog.showPasswordInputBox(guiScreen, "Password", "Enter your password", "");
+        		
+        		if(password == null)
+        		{
+        			//user canceled
+        			return;
+        		}
         		
         		Connection dbConnection = GlobalState.getDBConnection();
         		try {
@@ -132,18 +144,26 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         		// only allow registration if not already logged in
         		if(GlobalState.getUserRole() != GlobalState.UserRole.ANONYMOUS)
         			return;
+        		
         		while(true)
         		{
-	        		RegistrationWindow regWindow = new RegistrationWindow(guiScreen);
-	        		guiScreen.showWindow(regWindow);
+        			String password = TextInputDialog.showPasswordInputBox(guiScreen, "Password", "Enter password for new account", "");
+
+        			if(password == null)
+        			{
+        				// user canceled
+        				break;
+        			}
+        			
+        			String passwordConfirm = TextInputDialog.showPasswordInputBox(guiScreen, "Password", "Confirm your password", "");
+        			
+        			if(passwordConfirm == null)
+        			{
+        				// user canceled
+        				break;
+        			}
 	        		
-	        		if(regWindow.username == null)
-	        		{
-	        			// user canceled
-	        			break;
-	        		}
-	        		
-	        		if(!regWindow.password.equals(regWindow.passwordConfirm))
+	        		if(!password.equals(passwordConfirm))
 	        		{
 	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Passwords did not match");
 	        			continue;
@@ -151,21 +171,8 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        		
 	        		Connection dbConnection = GlobalState.getDBConnection();
 	        		try {
-	        			PreparedStatement st = dbConnection.prepareStatement("SELECT username FROM users WHERE username=?;");
-	        			st.setString(1, regWindow.username);
-	        			ResultSet rs = st.executeQuery();
 	        			
-	        			// make sure username not already taken
-	        			if(rs.next())
-	        			{
-	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Username already taken");
-	        				continue;
-	        			}
-	        			
-	        			rs.close();
-	        			st.close();
-	        			
-	        			st = dbConnection.prepareStatement("INSERT INTO customer(first_name) VALUES (?);",
+	        			PreparedStatement st = dbConnection.prepareStatement("INSERT INTO customer(first_name) VALUES (?);", 
 	        					new String[] { "loyalty_number"} );
 	        			st.setNull(1, java.sql.Types.VARCHAR);
 	        			if(st.executeUpdate() <= 0)
@@ -174,7 +181,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Failed to create customer");
 	        				break;
 	        			}
-	        			rs = st.getGeneratedKeys();
+	        			ResultSet rs = st.getGeneratedKeys();
 	        			Integer loyalty_number = null;
 	        			if(!rs.next())
 	        			{
@@ -188,9 +195,9 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        			st.close();
 	        			
 	        			String salt = MicrocenterWindow.getSalt();
-	        			String hashedPassword = get_SHA_512_SecurePassword(regWindow.password, salt);
+	        			String hashedPassword = get_SHA_512_SecurePassword(password, salt);
 	        			st = dbConnection.prepareStatement("INSERT INTO users (username, password, salt, role, loyalty_number) VALUES (?, ?, ?, 'customer', ?);");
-	        			st.setString(1, regWindow.username);
+	        			st.setString(1, ""+loyalty_number);
 	        			st.setString(2, hashedPassword);
 	        			st.setString(3, salt);
 	        			st.setInt(4, loyalty_number);
@@ -297,54 +304,5 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 		}
 		
 		return "";
-    }
-    
-    private class RegistrationWindow extends Window {
-
-    	private final GUIScreen guiScreen;
-    	public String username = null;
-    	public String password = null;
-    	public String passwordConfirm = null;
-    	
-    	private Panel mainPanel;
-    	private TextBox usernameBox;
-    	private TextBox passwordBox;
-    	private TextBox passwordConfirmBox;
-    	
-		public RegistrationWindow(GUIScreen guiScreen) {
-			super("Register");
-			this.guiScreen = guiScreen;
-			
-			mainPanel = new Panel();
-			mainPanel.addComponent(new Label("Username: "));
-			usernameBox = new TextBox("");
-			mainPanel.addComponent(usernameBox);
-			mainPanel.addComponent(new Label("Password: "));
-			passwordBox = new PasswordBox();
-			mainPanel.addComponent(passwordBox);
-			mainPanel.addComponent(new Label("Confirm Password: "));
-			passwordConfirmBox = new PasswordBox();
-			mainPanel.addComponent(passwordConfirmBox);
-			
-			Panel buttonPanel = new Panel(Panel.Orientation.HORISONTAL);
-			buttonPanel.addComponent(new Button("Ok", new Action() {
-				@Override
-				public void doAction() {
-					username = usernameBox.getText();
-					password = passwordBox.getText();
-					passwordConfirm = passwordConfirmBox.getText();
-					close();
-				}
-			}));
-			buttonPanel.addComponent(new Button("Cancel", new Action() {
-				@Override
-				public void doAction() {
-					close();
-				}
-			}));
-			mainPanel.addComponent(buttonPanel);
-			addComponent(mainPanel);
-		}
-    	
     }
 }
