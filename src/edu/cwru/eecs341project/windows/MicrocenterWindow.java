@@ -69,6 +69,16 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         mainPanel.addShortcut('l', true, false, new Action() {
         	@Override
         	public void doAction() {
+        		
+        		// if logged in then logout
+        		if(GlobalState.getUserRole() != GlobalState.UserRole.ANONYMOUS)
+        		{
+        			GlobalState.setUserRole(GlobalState.UserRole.ANONYMOUS);
+        			WindowManager.refreshWindow();
+        			return;
+        		}
+        		
+        		// otherwise login
         		String username = TextInputDialog.showTextInputBox(guiScreen, "Username", "Enter your username", "");
         		String password = TextInputDialog.showPasswordInputBox(guiScreen, "Password", "Enter your password", "");
         		
@@ -119,6 +129,9 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         mainPanel.addShortcut('r', true, false, new Action() {
         	@Override
         	public void doAction() {
+        		// only allow registration if not already logged in
+        		if(GlobalState.getUserRole() != GlobalState.UserRole.ANONYMOUS)
+        			return;
         		while(true)
         		{
 	        		RegistrationWindow regWindow = new RegistrationWindow(guiScreen);
