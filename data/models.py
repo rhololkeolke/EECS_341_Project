@@ -31,6 +31,22 @@ def get_or_create(session, model, **kwargs):
         raise
     return instance
 
+class User(DeclarativeBase):
+    """Sqlalchemy user model"""
+    __tablename__ = "user"
+    __table_args__ = (
+        CheckConstraint("role in ('customer', 'employee', 'DBA')"),
+        CheckConstraint("email LIKE '_%@_%._%'"),
+        CheckConstraint("(role = 'customer' AND loyalty_number IS NOT NULL) OR (role != 'customer' AND loyalty_number IS NULL)")
+    )
+    username = Column(String(100), primary_key=True)
+    email = Column(String(100), nullable=False)
+    password = Column(String(100), nullable=False)
+    salt = Column(String(100), nullable=False)
+    role = Column(String(30), default='customer')
+    loyalty_number = Column(Integer, ForeignKey('customer.loyalty_number'),
+                            nullable=True)
+
 class Customer(DeclarativeBase):
     """Sqlalchemy cusomter model"""
     __tablename__ = "customer"
