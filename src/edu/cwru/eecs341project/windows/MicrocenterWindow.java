@@ -159,6 +159,11 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Must provide a last name");
 	        			continue;
 	        		}
+	        		if(regWindow.username.length() == 0)
+	        		{
+	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Must provide a username");
+	        			continue;
+	        		}
 	        		if(regWindow.password.length() == 0)
 	        		{
 	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Password cannot be blank");
@@ -189,6 +194,19 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        			if(rs.next())
 	        			{
 	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Customer already exists");
+	        				continue;
+	        			}
+	        			
+	        			rs.close();
+	        			st.close();
+	        			
+	        			st = dbConnection.prepareStatement("SELECT * FROM users WHERE username=?;");
+	        			st.setString(1, regWindow.username);
+	        			rs = st.executeQuery();
+	        			
+	        			if(rs.next())
+	        			{
+	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Username taken");
 	        				continue;
 	        			}
 	        			
@@ -235,7 +253,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        			String salt = MicrocenterWindow.getSalt();
 	        			String hashedPassword = get_SHA_512_SecurePassword(regWindow.password, salt);
 	        			st = dbConnection.prepareStatement("INSERT INTO users (username, password, salt, role, loyalty_number) VALUES (?, ?, ?, 'customer', ?);");
-	        			st.setString(1, loyaltyNumber.toString());
+	        			st.setString(1, regWindow.username);
 	        			st.setString(2, hashedPassword);
 	        			st.setString(3, salt);
 	        			st.setInt(4, loyaltyNumber);
@@ -376,6 +394,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
     	private final GUIScreen guiScreen;
     	public String firstName = null;
     	public String lastName = null;
+    	public String username = null;
     	public String password = null;
     	public String passwordConfirm = null;
     	public String phoneNumber = null;
@@ -383,6 +402,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
     	private Panel mainPanel;
     	private TextBox firstNameBox;
     	private TextBox lastNameBox;
+    	private TextBox usernameBox;
     	private TextBox passwordBox;
     	private TextBox passwordConfirmBox;
     	private TextBox areaCodeBox;
@@ -400,6 +420,9 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 			mainPanel.addComponent(new Label("Last Name"));
 			lastNameBox = new TextBox("");
 			mainPanel.addComponent(lastNameBox);
+			mainPanel.addComponent(new Label("Username"));
+			usernameBox = new TextBox("");
+			mainPanel.addComponent(usernameBox);
 			mainPanel.addComponent(new Label("Password"));
 			passwordBox = new PasswordBox();
 			mainPanel.addComponent(passwordBox);
@@ -423,6 +446,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 				public void doAction() {
 					firstName = firstNameBox.getText().trim();
 					lastName = lastNameBox.getText().trim();
+					username = usernameBox.getText().trim();
 					password = passwordBox.getText().trim();
 					passwordConfirm = passwordConfirmBox.getText().trim();
 					StringBuilder sb = new StringBuilder();
