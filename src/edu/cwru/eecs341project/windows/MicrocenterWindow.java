@@ -80,7 +80,12 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         		
         		// otherwise login
         		String username = TextInputDialog.showTextInputBox(guiScreen, "Username", "Enter your username", "");
+        		if(username == null)
+        			return; // user canceled
+        		
         		String password = TextInputDialog.showPasswordInputBox(guiScreen, "Password", "Enter your password", "");
+        		if(password == null)
+        			return; // user canceled
         		
         		Connection dbConnection = GlobalState.getDBConnection();
         		try {
@@ -135,12 +140,18 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         		while(true)
         		{
 	        		RegistrationWindow regWindow = new RegistrationWindow(guiScreen);
-	        		guiScreen.showWindow(regWindow);
+	        		guiScreen.showWindow(regWindow, GUIScreen.Position.CENTER);
 	        		
 	        		if(regWindow.username == null)
 	        		{
 	        			// user canceled
 	        			break;
+	        		}
+	        		
+	        		if(regWindow.password.length() == 0)
+	        		{
+	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Password cannot be blank");
+	        			continue;
 	        		}
 	        		
 	        		if(!regWindow.password.equals(regWindow.passwordConfirm))
@@ -343,6 +354,13 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 				}
 			}));
 			mainPanel.addComponent(buttonPanel);
+			
+			mainPanel.addShortcut(Key.Kind.Escape, new Action() {
+				@Override
+				public void doAction() {
+					RegistrationWindow.this.close();
+				}
+			});
 			addComponent(mainPanel);
 		}
     	
