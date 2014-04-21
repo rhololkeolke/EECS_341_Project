@@ -8,13 +8,7 @@ import random
 import datetime
 import time
 import string
-
-from bisect import bisect_left
-
-def binary_search(a, x, lo=0, hi=None):   # can't use a to specify default for hi
-    hi = hi if hi is not None else len(a) # hi defaults to len(a)   
-    pos = bisect_left(a,x,lo,hi)          # find insertion position
-    return (pos if pos != hi and a[pos] == x else -1) # don't walk off the end
+import pydb
 
 def strTimeProp(start, end, format, prop):
     """Get a time at a proportion of a range of two formatted times.
@@ -48,9 +42,10 @@ if __name__ == '__main__':
                                 todays_datetime.month,
                                 todays_datetime.day)
 
+
     vendors = session.query(Vendor).all()
-    # make sure every brand as at least one vendor supplying it
-    brands = session.query(Brand).all()
+    # # make sure every brand as at least one vendor supplying it
+    # brands = session.query(Brand).all()
     # for brand in brands:
     #     if session.query(Supplies).filter_by(brand_id=brand.id).count() == 0:
     #         print "Adding suppliers for brand %s" % brand.name
@@ -64,126 +59,163 @@ if __name__ == '__main__':
     #     session.commit()
 
     stores = session.query(Store).all()
+
     products = session.query(Product).all()
 
+    # first create baseline price and ordering information to make the stores semi consistent
     product_info = {}
     for i, product in enumerate(products):
-        print "Product info of %d of %d products" % (i+1, len(products))
+        print "Generating product info for product %d of %d" % (i+1, len(products))
         product_info[product.upc] = {}
-        product_info[product.upc]['base_price'] = random.uniform(.5, 1)
-        product_info[product.upc]['base_amount'] = random.uniform(2, 500)
-        product_info[product.upc]['vendors'] = session.query(Supplies).filter_by(brand_id=product.brand).all()
-        product_info[product.upc]['vendor_prices'] = []
-        for product_vendor in product_info[product.upc]['vendors']:
-            product_info[product.upc]['vendor_prices'].append(float(product.unit_price)*random.gauss(product_info[product.upc]['base_price'], .1))
-
+        product_info[product.upc]['price'] = round(random.uniform(.5, 1)*float(product.unit_price), 2)
+        product_info[product.upc]['amount'] = random.uniform(2, 5)
+        product_vendors = session.query(Supplies).filter_by(brand_id=product.brand).all()
+        vendor_info = []
+        for product_vendor in product_vendors:
+            vendor_info.append([product_vendor.vendor_id,
+                                round(min(random.gauss(product_info[product.upc]['price'],
+                                             product_info[product.upc]['price']*.1),
+                                    float(product.unit_price)), 2)])
+        product_info[product.upc]['vendor_info'] = vendor_info
+    session.close()
 
     for store in stores:
-        for p, product in enumerate(products):
-            print "[%d] Product %d of %d" % (store.id, p+1, len(products))
-
-            if session.query(VendorPurchase).filter_by(upc=product.upc).count() != 0:
-                print "Purchases for this product at this store already exist"
+        session = Session()
+        ordered_products_results = session.execute('''
+                                                   SELECT oi.upc, MIN(o.order_date) as first_order
+                                                   FROM orders as o,
+                                                        order_item as oi
+                                                   WHERE o.id = oi.order_id AND
+                                                         o.store_id = %d
+                                                   GROUP BY oi.upc''' % store.id)
+        ordered_products = [r for r in ordered_products_results]
+        for i, ordered_product in enumerate(ordered_products):
+            #check if product is already ordered
+            purchases = session.query(VendorPurchase).filter_by(store_id=store.id,
+                                                                upc=ordered_product.upc).first()
+            if purchases is not None:
+                print "Product %d at store %d already has purchases" % (ordered_product.upc, store.id)
                 continue
 
-            product_order_date_result = session.execute('''
-                                                        SELECT min(o.order_date) as date
-                                                        FROM orders as o,
-                                                          order_item as oi
-                                                        WHERE o.store_id = %d AND
-                                                           o.id = oi.order_id AND
-                                                           oi.upc = %d
-                                                        ''' % (store.id, product.upc))
-            product_order_dates = [r for r in product_order_date_result]
-
-            if len(product_order_dates) < 1:
-                print "Error found no orders for product %d" % product.upc
-                continue
-                                                        
-            product_order_date = product_order_dates[0]
-            
-
-            first_purchase_date = randomDate(store.opening_date, product_order_date.date)
+            # create a series of orders for these products
+            print "Creating vendor purchases for product %d of %d in store %d" % (i+1, len(ordered_products), store.id)
+            num_purchases = random.randint(1, 30)
             purchase_dates = set()
-            for i in range(random.randint(1, 50)):
-                purchase_dates.add(randomDate(first_purchase_date, todays_date))
+            for n in range(num_purchases):
+                purchase_dates.add(randomDate(ordered_product.first_order, todays_date))
             purchase_dates = list(purchase_dates)
-            purchase_dates.insert(0, first_purchase_date)
-            purchase_dates.append(todays_date)
+            purchase_dates.sort()
+            if purchase_dates[0] != ordered_product.first_order:
+                purchase_dates.insert(0, ordered_product.first_order)
+            if purchase_dates[-1] != todays_date:
+                purchase_dates.append(todays_date)
 
+            previously_purchased_amount = 0
+            for j, purchase_date in enumerate(purchase_dates[:-1]):
+                print "Purchsing on date %d of %d" % (j+1, len(purchase_dates)-1)
 
-            for i, purchase_date in enumerate(purchase_dates):
-                print "Purchase date %d of %d" % (i+1, len(purchase_dates))
-                if i == len(purchase_dates)-1:
-                    break
-                vendor_index = random.randint(0, len(product_info[product.upc]['vendors'])-1)
-                vendor = product_info[product.upc]['vendors'][vendor_index]
-                vendor_price = product_info[product.upc]['vendor_prices'][vendor_index]
-
-                # amount purchased in past
                 amount_results = session.execute('''
-                                                 SELECT sum(vp.amount)
-                                                 FROM vendor_purchase as vp
-                                                 WHERE vp.store_id = %d AND
-                                                       vp.upc = %d AND
-                                                       vp.purchase_date <= to_date('%s', 'MM/DD/YYYY')
-                                                 ''' % (store.id, product.upc,
-                                                        purchase_date.strftime('%m/%d/%YYYY')))
-                past_purchased_amount = [r for r in amount_results][0][0] or 0
-                # amount ordered in past
-                amount_results = session.execute('''
-                                                 SELECT sum(oi.quantity)
+                                                 SELECT SUM(quantity) as amount
                                                  FROM orders as o,
                                                       order_item as oi
                                                  WHERE o.id = oi.order_id AND
                                                        o.store_id = %d AND
                                                        oi.upc = %d AND
-                                                       o.order_date <= to_date('%s', 'MM/DD/YYYY')
-                                                 ''' % (store.id, product.upc,
-                                                        purchase_date.strftime('%m/%d/%YYYY')))
-                past_ordered_amount = [r for r in amount_results][0][0] or 0
-                # amount returned in past
-                amount_results = session.execute('''
-                                                 SELECT sum(ri.quantity)
-                                                 FROM orders as o,
-                                                      return_item as ri
-                                                 WHERE o.id = ri.order_id AND
-                                                       o.store_id = %d AND
-                                                       ri.upc = %d AND
-                                                       ri.return_date <= to_date('%s', 'MM/DD/YYYY')
-                                                 ''' % (store.id, product.upc,
-                                                        purchase_date.strftime('%m/%d/%YYYY')))
-                past_returned_amount = [r for r in amount_results][0][0] or 0
-                # amount to be ordered before next purchase
-                amount_results = session.execute('''
-                                                  SELECT sum(oi.quantity)
-                                                  FROM orders as o,
-                                                       order_item as oi
-                                                  WHERE o.id = oi.order_id AND
-                                                        o.store_id = %d AND
-                                                        oi.upc = %d AND
-                                                        o.order_date > to_date('%s', 'MM/DD/YYYY') AND
-                                                        o.order_date <= to_date('%s', 'MM/DD/YYYY')
-                                                  ''' % (store.id, product.upc,
-                                                         purchase_date.strftime('%m/%d/%YYYY'),
-                                                         purchase_dates[i+1].strftime('%m/%d/%YYYY')))
-                amount_to_order = [r for r in amount_results][0][0] or 0
-                
-                amount = past_purchased_amount - past_ordered_amount + \
-                         past_returned_amount - amount_to_order
-                if amount < 0:
-                    amount = -1*amount;
-                amount = max(product_info[product.upc]['base_amount'], amount)
+                                                       o.order_date < to_date('%s', 'MM/DD/YYYY')
+                                                 ''' % (store.id, ordered_product.upc,
+                                                        purchase_date.strftime('%m/%d/%Y')))
+                previously_ordered_amount = [r for r in amount_results][0].amount or 0
 
-                vendor_purchase = VendorPurchase(store_id=store.id,
-                                                 vendor_id=vendor.vendor_id,
-                                                 upc=product.upc,
-                                                 purchase_date=purchase_date,
-                                                 amount=amount,
-                                                 unit_price=vendor_price)
-                session.add(vendor_purchase)
-        
+                amount_results = session.execute('''
+                                                SELECT SUM(quantity) as amount
+                                                FROM orders as o,
+                                                     return_item as ri
+                                                WHERE o.id = ri.order_id AND
+                                                      o.store_id = %d AND
+                                                      ri.upc = %d AND
+                                                      ri.return_date < to_date('%s', 'MM/DD/YYYY')
+                                                ''' % (store.id, ordered_product.upc,
+                                                       purchase_date.strftime('%m/%d/%Y')))
+                previously_returned_amount = [r for r in amount_results][0].amount or 0
+                
+
+                amount_results = session.execute('''
+                                                SELECT SUM(quantity) as amount
+                                                FROM orders as o,
+                                                     order_item as oi
+                                                WHERE o.id = oi.order_id AND
+                                                      o.store_id = %d AND
+                                                      oi.upc = %d AND
+                                                      o.order_date >= to_date('%s', 'MM/DD/YYYY') AND
+                                                      o.order_date < to_date('%s', 'MM/DD/YYYY')
+                                                ''' % (store.id, ordered_product.upc,
+                                                       purchase_date.strftime('%m/%d/%Y'),
+                                                       purchase_dates[j+1].strftime('%m/%d/%Y')))
+                future_order_amount = [r for r in amount_results][0].amount or 0
+
+                amount = future_order_amount - previously_purchased_amount + \
+                         previously_ordered_amount - previously_returned_amount
+                amount = max(amount, 0)
+
+                if amount == 0:
+                    continue
+                if amount < product_info[ordered_product.upc]['amount']:
+                    amount = product_info[ordered_product.upc]['amount']
+
+                vendor_info = product_info[ordered_product.upc]['vendor_info']
+                vendor = random.choice(vendor_info)
+                purchase = VendorPurchase(store_id=store.id,
+                                          vendor_id=vendor[0],
+                                          upc=ordered_product.upc,
+                                          purchase_date=purchase_date,
+                                          amount=amount,
+                                          unit_price=vendor[1])
+                previously_purchased_amount = previously_purchased_amount + amount
+                session.add(purchase)
             session.commit()
+
+    
+        not_ordered_products_results = session.execute('''
+                                                       (SELECT p.upc
+                                                       FROM product as p)
+                                                       EXCEPT
+                                                       (SELECT oi.upc
+                                                       FROM orders as o,
+                                                            order_item as oi
+                                                       WHERE o.id = oi.order_id AND
+                                                             o.store_id = %d
+                                                       GROUP BY oi.upc)''' % store.id)
+        not_ordered_products = [r for r in not_ordered_products_results]
+        for i, not_ordered_product in enumerate(not_ordered_products):
+            # check if purchases already exist
+            purchases = session.query(VendorPurchase).filter_by(store_id=store.id,
+                                                                    upc=not_ordered_product.upc).first()
+            if purchases is not None:
+                print "Product %d already has a purchase at store %d" % (not_ordered_product.upc, store.id)
+                continue
+
+            # create a single order for this product
+            print "Creating a vendor purchase for product %d of %d in store %d" % (i+1, len(not_ordered_products), store.id)
+            amount = product_info[not_ordered_product.upc]['amount']
+            purchase_date = randomDate(store.opening_date, todays_date)
+            vendor_info = product_info[not_ordered_product.upc]['vendor_info']
+            vendor = random.choice(vendor_info)
+
+            purchase = VendorPurchase(store_id=store.id,
+                                      vendor_id=vendor[0],
+                                      upc=not_ordered_product.upc,
+                                      purchase_date=purchase_date,
+                                      amount=amount,
+                                      unit_price=vendor[1])
+            session.add(purchase)
+            session.commit()
+        session.commit()
+        session.close()
+
+    # website = session.query(Store).filter_by(name='Website').first()
+    # if website is None:
+    #     raise Exception("Website is not in the store relation")
+    # stores = session.query(Store).filter('id != %d' % website.id).all()
 
     # products = session.query(Product).all()
     # for product_num, product in enumerate(products):
@@ -235,5 +267,3 @@ if __name__ == '__main__':
     #         session.commit()
     #     else:
     #         print "Purchases already exist for this product"
-
-    session.close()
