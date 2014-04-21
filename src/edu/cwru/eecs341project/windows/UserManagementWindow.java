@@ -53,31 +53,17 @@ public class UserManagementWindow extends MicrocenterWindow {
         	{
         		Connection dbConn = GlobalState.getDBConnection();
         		List<String> listOptions = new ArrayList<String>();
-        		Map<String, Integer> nameToLoyaltyMap = new HashMap<String, Integer>();
         		try {
         			Statement st = dbConn.createStatement();
-        			ResultSet rs = st.executeQuery("SELECT loyalty_number, last_name, first_name, middle_initial FROM customer ORDER BY last_name, first_name, middle_initial;");
+        			ResultSet rs = st.executeQuery("SELECT username FROM users ORDER BY username;");
         			while(rs.next())
         			{
-        				StringBuilder nameBuilder = new StringBuilder();
-        				nameBuilder.append(rs.getString(2));
-        				nameBuilder.append(", ");
-        				nameBuilder.append(rs.getString(3));
-        				nameBuilder.append(" ");
-        				String middleInitial = rs.getString(4);
-        				if(middleInitial != null)
-        				{
-        					nameBuilder.append(middleInitial);
-        					nameBuilder.append(".");
-        				}
-        				
-        				nameToLoyaltyMap.put(nameBuilder.toString(), rs.getInt(1));
-        				listOptions.add("[" + rs.getInt(1) + "]" + nameBuilder.toString());
+        				listOptions.add(rs.getString(1));
         			}
         			
-        			ListSelectDialog.showDialog(guiScreen, "Customer List", "All customers in database", listOptions.toArray());
+        			ListSelectDialog.showDialog(guiScreen, "Users List", "All users in database", listOptions.toArray());
         		} catch(SQLException e) {
-        			MessageBox.showMessageBox(guiScreen, "SQL Error", "Error getting list of customers" + e.getMessage());
+        			MessageBox.showMessageBox(guiScreen, "SQL Error", "Error getting list of users" + e.getMessage());
         			return;
         		}
         	}
