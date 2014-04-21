@@ -142,15 +142,31 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        		RegistrationWindow regWindow = new RegistrationWindow(guiScreen);
 	        		guiScreen.showWindow(regWindow, GUIScreen.Position.CENTER);
 	        		
-	        		if(regWindow.username == null)
+	        		if(regWindow.firstName == null)
 	        		{
 	        			// user canceled
 	        			break;
 	        		}
 	        		
+	        		// check input validity
+	        		if(regWindow.firstName.length() == 0)
+	        		{
+	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Must provide a first name");
+	        			continue;
+	        		}
+	        		if(regWindow.lastName.length() == 0)
+	        		{
+	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Must provide a last name");
+	        			continue;
+	        		}
 	        		if(regWindow.password.length() == 0)
 	        		{
 	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Password cannot be blank");
+	        			continue;
+	        		}
+	        		if(regWindow.phoneNumber.length() <= 0 || regWindow.phoneNumber.length() > 13)
+	        		{
+	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Invalid phone number");
 	        			continue;
 	        		}
 	        		
@@ -160,63 +176,108 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        			continue;
 	        		}
 	        		
+	        		// now do the database work with the provided info
 	        		Connection dbConnection = GlobalState.getDBConnection();
 	        		try {
-	        			PreparedStatement st = dbConnection.prepareStatement("SELECT username FROM users WHERE username=?;");
-	        			st.setString(1, regWindow.username);
+	        			PreparedStatement st = dbConnection.prepareStatement("SELECT c.loyalty_number FROM customer as c, customer_phone as p WHERE c.loyalty_number = p.loyalty_number AND c.first_name=? AND c.last_name=? AND p.phone = ?;");
+	        			st.setString(1, regWindow.firstName);
+	        			st.setString(2, regWindow.lastName);
+	        			st.setString(3, regWindow.phoneNumber);
 	        			ResultSet rs = st.executeQuery();
 	        			
-	        			// make sure username not already taken
+	        			// make sure customer doesn't already exist
 	        			if(rs.next())
 	        			{
-	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Username already taken");
+	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Customer already exists");
 	        				continue;
 	        			}
 	        			
 	        			rs.close();
 	        			st.close();
 	        			
-	        			st = dbConnection.prepareStatement("INSERT INTO customer(first_name) VALUES (?);",
+	        			dbConnection.setAutoCommit(false);
+	        			st = dbConnection.prepareStatement("INSERT INTO customer(first_name, last_name) VALUES (?, ?);",
 	        					new String[] { "loyalty_number"} );
-	        			st.setNull(1, java.sql.Types.VARCHAR);
+	        			st.setString(1, regWindow.firstName);
+	        			st.setString(2, regWindow.lastName);
 	        			if(st.executeUpdate() <= 0)
 	        			{
+	        				dbConnection.rollback();
 	        				st.close();
 	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Failed to create customer");
 	        				break;
 	        			}
 	        			rs = st.getGeneratedKeys();
-	        			Integer loyalty_number = null;
+	        			Integer loyaltyNumber = null;
 	        			if(!rs.next())
 	        			{
+	        				dbConnection.rollback();
 	        				rs.close();
 	        				st.close();
 	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Failed to create customer");
 	        				break;
 	        			}
-	        			loyalty_number = rs.getInt(1);
+	        			loyaltyNumber = rs.getInt(1);
 	        			rs.close();
 	        			st.close();
+	        			
+	        			st = dbConnection.prepareStatement("INSERT INTO customer_phone(loyalty_number, phone) VALUES (?, ?);");
+	        			st.setInt(1, loyaltyNumber);
+	        			st.setString(2, regWindow.phoneNumber);
+	        			if(st.executeUpdate() <= 0)
+	        			{
+	        				dbConnection.rollback();
+	        				st.close();
+	        				MessageBox.showMessageBox(guiScreen, "RegistrationError", "Failed to create customer");
+	        				break;
+	        			}
 	        			
 	        			String salt = MicrocenterWindow.getSalt();
 	        			String hashedPassword = get_SHA_512_SecurePassword(regWindow.password, salt);
 	        			st = dbConnection.prepareStatement("INSERT INTO users (username, password, salt, role, loyalty_number) VALUES (?, ?, ?, 'customer', ?);");
-	        			st.setString(1, regWindow.username);
+	        			st.setString(1, loyaltyNumber.toString());
 	        			st.setString(2, hashedPassword);
 	        			st.setString(3, salt);
-	        			st.setInt(4, loyalty_number);
-	        			st.executeUpdate();
+	        			st.setInt(4, loyaltyNumber);
+	        			if(st.executeUpdate() <= 0)
+	        			{
+	        				dbConnection.rollback();
+	        				st.close();
+	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Failed to create customer");
+	        				break;
+	        			}
+	        			dbConnection.commit();
 	        			MessageBox.showMessageBox(guiScreen, "Registration Success", "Registered and logged in");
 	        			
 	        			GlobalState.setUserRole(GlobalState.UserRole.CUSTOMER);
-	        			GlobalState.setCustomerNumber(loyalty_number);
+	        			GlobalState.setCustomerNumber(loyaltyNumber);
 	            		WindowManager.refreshWindow();
 	        			break;
 	        		} catch(SQLException e) {
+	        			
+	        			try {
+	        				if(!dbConnection.getAutoCommit())
+	        					dbConnection.rollback();
+						} catch (SQLException e1) {
+							e1.printStackTrace();
+						}
+	        			
 	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "SQL Error: " + e.getMessage());
 	        			break;
 	        		} catch (NoSuchAlgorithmException e) {
+	        			try {
+	        				if(!dbConnection.getAutoCommit())
+	        					dbConnection.rollback();
+						} catch (SQLException e1) {
+							e1.printStackTrace();
+						}
 						e.printStackTrace();
+					} finally {
+						try {
+							dbConnection.setAutoCommit(true);
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
 					}
         		}
         		
@@ -313,37 +374,65 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
     private class RegistrationWindow extends Window {
 
     	private final GUIScreen guiScreen;
-    	public String username = null;
+    	public String firstName = null;
+    	public String lastName = null;
     	public String password = null;
     	public String passwordConfirm = null;
+    	public String phoneNumber = null;
     	
     	private Panel mainPanel;
-    	private TextBox usernameBox;
+    	private TextBox firstNameBox;
+    	private TextBox lastNameBox;
     	private TextBox passwordBox;
     	private TextBox passwordConfirmBox;
+    	private TextBox areaCodeBox;
+    	private TextBox firstDigitsBox;
+    	private TextBox lastDigitsBox;
     	
 		public RegistrationWindow(GUIScreen guiScreen) {
 			super("Register");
 			this.guiScreen = guiScreen;
 			
 			mainPanel = new Panel();
-			mainPanel.addComponent(new Label("Username: "));
-			usernameBox = new TextBox("");
-			mainPanel.addComponent(usernameBox);
-			mainPanel.addComponent(new Label("Password: "));
+			mainPanel.addComponent(new Label("First Name"));
+			firstNameBox = new TextBox("");
+			mainPanel.addComponent(firstNameBox);
+			mainPanel.addComponent(new Label("Last Name"));
+			lastNameBox = new TextBox("");
+			mainPanel.addComponent(lastNameBox);
+			mainPanel.addComponent(new Label("Password"));
 			passwordBox = new PasswordBox();
 			mainPanel.addComponent(passwordBox);
-			mainPanel.addComponent(new Label("Confirm Password: "));
+			mainPanel.addComponent(new Label("Confirm Password"));
 			passwordConfirmBox = new PasswordBox();
 			mainPanel.addComponent(passwordConfirmBox);
+			mainPanel.addComponent(new Label("Phone Number"));
+			
+			Panel phonePanel = new Panel(Panel.Orientation.HORISONTAL);
+			areaCodeBox = new TextBox("");
+			phonePanel.addComponent(areaCodeBox);
+			firstDigitsBox = new TextBox("");
+			phonePanel.addComponent(firstDigitsBox);
+			lastDigitsBox = new TextBox("");
+			phonePanel.addComponent(lastDigitsBox);
+			mainPanel.addComponent(phonePanel);
 			
 			Panel buttonPanel = new Panel(Panel.Orientation.HORISONTAL);
 			buttonPanel.addComponent(new Button("Ok", new Action() {
 				@Override
 				public void doAction() {
-					username = usernameBox.getText();
-					password = passwordBox.getText();
-					passwordConfirm = passwordConfirmBox.getText();
+					firstName = firstNameBox.getText().trim();
+					lastName = lastNameBox.getText().trim();
+					password = passwordBox.getText().trim();
+					passwordConfirm = passwordConfirmBox.getText().trim();
+					StringBuilder sb = new StringBuilder();
+					sb.append("(");
+					sb.append(areaCodeBox.getText());
+					sb.append(")");
+					sb.append(firstDigitsBox.getText());
+					sb.append("-");
+					sb.append(lastDigitsBox.getText());
+					phoneNumber = sb.toString();
 					close();
 				}
 			}));
