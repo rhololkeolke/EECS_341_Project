@@ -19,6 +19,7 @@ public class GlobalState {
 	private static int customerNumber = -1;
 	private static UserRole userRole = UserRole.ANONYMOUS;
 	private static Connection dbConnection = null;
+	private static String username = null;
 	
 	public static int getCustomerNumber() throws Exception {
 		if(userRole == UserRole.ANONYMOUS || userRole == UserRole.EMPLOYEE || userRole == UserRole.DBA)
@@ -30,6 +31,16 @@ public class GlobalState {
 	
 	public static void setCustomerNumber(int custNum) {
 		customerNumber = custNum;
+	}
+	
+	public static String getUsername() {
+		if(userRole == UserRole.ANONYMOUS)
+			return null;
+		return username;
+	}
+	
+	public static void setUsername(String username) {
+		GlobalState.username = username; 
 	}
 	
 	public static UserRole getUserRole()

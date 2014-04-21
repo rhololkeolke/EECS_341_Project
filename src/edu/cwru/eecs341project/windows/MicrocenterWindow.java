@@ -121,6 +121,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         			{
         				MessageBox.showMessageBox(guiScreen, "Login Error", "Incorrect username/password");
         			}
+        			GlobalState.setUsername(username);
         			queryResult.close();
         			st.close();
         		} catch(SQLException e) {
