@@ -55,10 +55,10 @@ public class UserManagementWindow extends MicrocenterWindow {
         		List<String> listOptions = new ArrayList<String>();
         		try {
         			Statement st = dbConn.createStatement();
-        			ResultSet rs = st.executeQuery("SELECT username FROM users ORDER BY username;");
+        			ResultSet rs = st.executeQuery("SELECT username, role FROM users ORDER BY username;");
         			while(rs.next())
         			{
-        				listOptions.add(rs.getString(1));
+        				listOptions.add(rs.getString(1) + " (" + rs.getString(2) + ")");
         			}
         			
         			ListSelectDialog.showDialog(guiScreen, "Users List", "All users in database", listOptions.toArray());
