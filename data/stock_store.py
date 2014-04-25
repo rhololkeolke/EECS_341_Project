@@ -12,6 +12,8 @@ import datetime
 import time
 import string
 
+import pydb
+
 if __name__ == '__main__':
     engine = db_connect()
     create_tables(engine)
@@ -34,34 +36,63 @@ if __name__ == '__main__':
     
     for store in stores:
         print "Stocking store %d" % store.id
-        product_purchases = session.execute('SELECT upc, MAX(purchase_date) as purchase_date \
-                                            FROM vendor_purchase \
-                                            WHERE store_id = %d \
-                                            GROUP BY upc' % store.id)
-        for product_purchase in product_purchases:
+        product_results = session.execute('''
+                                          SELECT DISTINCT upc
+                                          FROM vendor_purchase
+                                          WHERE store_id = %d
+                                          ORDER BY upc''' % store.id)
+        products = [r for r in product_results]
+        for product in products:
             # check if already stocked
             stock = session.query(Stock).filter_by(store_id=store.id,
-                                                   upc=product_purchase.upc).first()
-            purchased_amount = session.query(VendorPurchase).filter_by(store_id=store.id,
-                                                                      upc=product_purchase.upc,
-                                                                      purchase_date=product_purchase.purchase_date).first().amount
-            if stock is None:
-                print "No stock for %d" % product_purchase.upc
+                                                   upc=product.upc).first()
+            if stock is not None:
+                print "Product %d already stocked at store %d" % (product.upc, store.id)
+                continue
+
+            purchased_amount_results = session.execute('''
+                                                       SELECT SUM(amount) as amount
+                                                       FROM vendor_purchase
+                                                       WHERE store_id = %d AND
+                                                             upc = %d''' % (store.id, product.upc))
+            purchased_amount = [r for r in purchased_amount_results][0].amount or 0
+
+            ordered_amount_results = session.execute('''
+                                                     SELECT SUM(quantity) as amount
+                                                     FROM orders AS o,
+                                                          order_item AS oi
+                                                     WHERE o.id = oi.order_id AND
+                                                           o.store_id = %d AND
+                                                           oi.upc = %d''' % (store.id, product.upc))
+            ordered_amount = [r for r in ordered_amount_results][0].amount or 0
+
+            returned_amount_results = session.execute('''
+                                                      SELECT SUM(quantity) as amount
+                                                      FROM orders AS o,
+                                                           return_item AS ri
+                                                      WHERE o.id = ri.order_id AND
+                                                            o.store_id = %d AND
+                                                            ri.upc = %d''' % (store.id, product.upc))
+            returned_amount = [r for r in returned_amount_results][0].amount or 0
+
+            amount = purchased_amount - ordered_amount + returned_amount
+            print "Stocking %d of product %d at store %d" % (amount, product.upc, store.id)
                 
-                stock = Stock(store_id=store.id,
-                              upc=product_purchase.upc,
-                              amount=int(purchased_amount*random.uniform(.1, 1)))
-                session.add(stock)
-            else:
-                print "product %d is already stocked" % product_purchase.upc
+            stock = Stock(store_id=store.id,
+                          upc=product.upc,
+                          amount=amount)
+            session.add(stock)
 
             # check if already on a shelf
-            shelf_locations = session.execute(' '.join(['SELECT COUNT(*) AS num',
-                                                        'FROM shelf as s,',
-                                                        'product_location as pl',
-                                                        'WHERE s.store_id = %d AND' % store.id,
-                                                        's.id = pl.shelf_id AND',
-                                                        'pl.upc = %d' % stock.upc])).first()
+            shelf_location_results = session.execute('''
+                                                     SELECT COUNT(*) AS num
+                                                     FROM shelf as s,
+                                                          product_location as pl
+                                                     WHERE s.store_id = %d AND
+                                                          s.id = pl.shelf_id AND
+                                                          pl.upc = %d''' % (store.id, stock.upc))
+            shelf_locations = [r for r in shelf_location_results][0]
+            
             if shelf_locations.num == 0:
                 print "Placing product %d on shelves" % stock.upc
                 shelves = session.query(Shelf).filter_by(store_id=store.id).all()
