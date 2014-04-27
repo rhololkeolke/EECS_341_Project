@@ -74,6 +74,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         		if(GlobalState.getUserRole() != GlobalState.UserRole.ANONYMOUS)
         		{
         			GlobalState.setUserRole(GlobalState.UserRole.ANONYMOUS);
+        			WindowManager.exitToMain();
         			WindowManager.refreshWindow();
         			return;
         		}
