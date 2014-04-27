@@ -42,12 +42,13 @@ if __name__ == '__main__':
                                           WHERE store_id = %d
                                           ORDER BY upc''' % store.id)
         products = [r for r in product_results]
-        for product in products:
+        num_p = len(products)
+        for i_p, product in enumerate(products):
             # check if already stocked
             stock = session.query(Stock).filter_by(store_id=store.id,
                                                    upc=product.upc).first()
             if stock is not None:
-                print "Product %d already stocked at store %d" % (product.upc, store.id)
+                print "[%3.0f%%] Product %d already stocked at store %d" % (100*float(i_p)/num_p, product.upc, store.id)
                 continue
 
             purchased_amount_results = session.execute('''
@@ -76,7 +77,10 @@ if __name__ == '__main__':
             returned_amount = [r for r in returned_amount_results][0].amount or 0
 
             amount = purchased_amount - ordered_amount + returned_amount
-            print "Stocking %d of product %d at store %d" % (amount, product.upc, store.id)
+            if amount < 0:
+                print "Warning: Invalid product history in database"
+                amount = 0
+            print "[%3.0f%%] Stocking %d of product %d at store %d" % (100*float(i_p)/num_p, amount, product.upc, store.id)
                 
             stock = Stock(store_id=store.id,
                           upc=product.upc,
