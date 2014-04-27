@@ -99,7 +99,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         				String salt = queryResult.getString(2);
         				String storedPassword = queryResult.getString(1);
         				
-        				String hashedPassword = MicrocenterWindow.get_SHA_512_SecurePassword(password, salt);
+        				String hashedPassword = GlobalState.get_SHA_512_SecurePassword(password, salt);
         				
         				if(storedPassword.equals(hashedPassword))
         				{
@@ -251,8 +251,8 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        				break;
 	        			}
 	        			
-	        			String salt = MicrocenterWindow.getSalt();
-	        			String hashedPassword = get_SHA_512_SecurePassword(regWindow.password, salt);
+	        			String salt = GlobalState.getSalt();
+	        			String hashedPassword = GlobalState.get_SHA_512_SecurePassword(regWindow.password, salt);
 	        			st = dbConnection.prepareStatement("INSERT INTO users (username, password, salt, role, loyalty_number) VALUES (?, ?, ?, 'customer', ?);");
 	        			st.setString(1, regWindow.username);
 	        			st.setString(2, hashedPassword);
@@ -358,37 +358,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 		super.close();
 	}
 	
-	//Add salt
-    private static String getSalt() throws NoSuchAlgorithmException
-    {
-        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-        byte[] salt = new byte[16];
-        sr.nextBytes(salt);
-        return salt.toString();
-    }
-    
-    private static String get_SHA_512_SecurePassword(String password, String salt)
-    {
-        MessageDigest md;
-		try {
-			md = MessageDigest.getInstance("SHA-512");
-
-	        md.update(salt.getBytes());
-	        byte[] bytes = md.digest(password.getBytes());
-	        StringBuilder sb = new StringBuilder();
-	        for(int i=0; i< bytes.length ;i++)
-	        {
-	            sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-	        }
-	        //Get complete hashed password in hex format
-	        return sb.toString();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return "";
-    }
+	
     
     private class RegistrationWindow extends Window {
 
