@@ -144,6 +144,10 @@ public class UserManagementWindow extends MicrocenterWindow {
         		}
         		
         		MessageBox.showMessageBox(guiScreen, "Deletion", "Successfully deleted " + username);
+        	} else if(label.equals("Create User")) {
+        		CreateUserWindow window = new CreateUserWindow(guiScreen);
+        		WindowManager.pushWindow(window);
+        		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	}
         	else {
         		MessageBox.showMessageBox(guiScreen, "Action", "Selected " + label);
@@ -151,20 +155,120 @@ public class UserManagementWindow extends MicrocenterWindow {
         }
 	}
 	
+	private class CreateUserWindow extends MicrocenterWindow {
+	
+		private Panel mainPanel;
+		private TextBox usernameBox;
+		private RadioCheckBoxList roleRadio;
+		private PasswordBox passwordBox;
+		private PasswordBox confirmPasswordBox;
+		
+		public CreateUserWindow(final GUIScreen guiScreen)
+		{
+			super(guiScreen, "Create User", true, false);
+			mainPanel = new Panel();
+			
+			Panel usernamePanel = new Panel(Panel.Orientation.HORISONTAL);
+			usernamePanel.addComponent(new Label("Username: "));
+			usernameBox = new TextBox();
+			usernamePanel.addComponent(usernameBox);
+			mainPanel.addComponent(usernamePanel);
+			
+			Panel rolePanel = new Panel(Panel.Orientation.HORISONTAL);
+			rolePanel.addComponent(new Label("Role: "));
+			roleRadio = new RadioCheckBoxList();
+			roleRadio.addItem("employee");
+			roleRadio.addItem("DBA");
+			roleRadio.setCheckedItemIndex(0);
+			rolePanel.addComponent(roleRadio);
+			mainPanel.addComponent(rolePanel);
+			
+			Panel passwordPanel = new Panel(Panel.Orientation.HORISONTAL);
+			passwordPanel.addComponent(new Label("Password: "));
+			passwordBox = new PasswordBox();
+			passwordPanel.addComponent(passwordBox);
+			mainPanel.addComponent(passwordPanel);
+			
+			Panel confirmPasswordPanel = new Panel(Panel.Orientation.HORISONTAL);
+			confirmPasswordPanel.addComponent(new Label("Confirm Password: "));
+			confirmPasswordBox = new PasswordBox();
+			confirmPasswordPanel.addComponent(confirmPasswordBox);
+			mainPanel.addComponent(confirmPasswordPanel);
+			
+			mainPanel.addComponent(new Button("Save", new Action() {
+				@Override
+				public void doAction() {
+					Connection dbConn = GlobalState.getDBConnection();
+					if(usernameBox.getText().trim().length() == 0)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "Username cannot be blank");
+						return;
+					}
+					if(passwordBox.getText().trim().length() == 0 || confirmPasswordBox.getText().trim().length() == 0)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "Password cannot be blank");
+						return;
+					}
+					if(!passwordBox.getText().trim().equals(confirmPasswordBox.getText().trim()))
+					{	
+						MessageBox.showMessageBox(guiScreen, "Error", "Passwords do not match");
+						return;
+					}
+					try{
+						PreparedStatement st = dbConn.prepareStatement("SELECT * " +
+								"FROM users " +
+								"WHERE username = ?;");
+						st.setString(1, usernameBox.getText().trim());
+						ResultSet rs = st.executeQuery();
+						if(rs.next())
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "Username already exists");
+							return;
+						}
+						rs.close();
+						st.close();
+						
+						String salt = GlobalState.getSalt();
+						String hashedPassword = GlobalState.get_SHA_512_SecurePassword(passwordBox.getText().trim(), salt);
+						
+						st = dbConn.prepareStatement("INSERT INTO users(username, password, salt, role) " +
+								"VALUES(?, ?, ?, ?);");
+						st.setString(1, usernameBox.getText().trim());
+						st.setString(2, hashedPassword);
+						st.setString(3, salt);
+						st.setString(4, ((String)roleRadio.getCheckedItem()));
+						st.executeUpdate();
+						st.close();
+						
+						MessageBox.showMessageBox(guiScreen, "Success", "Successfully created user");
+						close();
+						
+					} catch(SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+						System.out.println(e.getMessage());
+					} catch (NoSuchAlgorithmException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}));
+			
+			addComponent(mainPanel);
+		}
+	
+	}
+
 	private class UserInfoWindow extends MicrocenterWindow {
 		private Panel mainPanel;
-		final String username;
-		TextBox usernameBox = null;
-		RadioCheckBoxList accountTypeRadio = null;
-		PasswordBox passwordBox = null;
-		PasswordBox confirmPasswordBox = null;
+		private TextBox usernameBox = null;
+		private RadioCheckBoxList accountTypeRadio = null;
+		private PasswordBox passwordBox = null;
+		private PasswordBox confirmPasswordBox = null;
 		
 		public UserInfoWindow(final GUIScreen guiScreen, final String username, String accountType)
 		{
 			super(guiScreen, "User Info", true, false);
 			mainPanel = new Panel();
-			
-			this.username = username;
 			
 			Panel usernamePanel = new Panel(Panel.Orientation.HORISONTAL);
 			usernamePanel.addComponent(new Label("Username: "));
@@ -211,39 +315,41 @@ public class UserManagementWindow extends MicrocenterWindow {
 					Connection dbConn = GlobalState.getDBConnection();
 					try{
 						PreparedStatement st;
-						if(passwordBox.getText().length() > 0)
+						if(usernameBox.getText().trim().length() <= 0)
 						{
-							if(!passwordBox.getText().equals(confirmPasswordBox.getText()))
+							MessageBox.showMessageBox(guiScreen, "Error", "Username cannot be blank");
+							return;
+						}
+						if(!usernameBox.getText().trim().equals(username))
+						{
+							st = dbConn.prepareStatement("SELECT * FROM users WHERE username=?;");
+							st.setString(1, usernameBox.getText().trim());
+							ResultSet rs = st.executeQuery();
+							rs.next();
+							if(rs.next())
+							{
+								MessageBox.showMessageBox(guiScreen, "Error", "Username " + usernameBox.getText().trim() + " already exists");
+								return;
+							}
+							rs.close();
+							st.close();
+						}
+						
+						if(passwordBox.getText().trim().length() > 0 || confirmPasswordBox.getText().trim().length() > 0)
+						{
+							if(!passwordBox.getText().trim().equals(confirmPasswordBox.getText().trim()))
 							{
 								MessageBox.showMessageBox(guiScreen, "ERROR", "Passwords do not match");
 								return;
 							}
-							if(usernameBox.getText().length() <= 0)
-							{
-								MessageBox.showMessageBox(guiScreen, "Error", "Username cannot be blank");
-								return;
-							}
-							if(usernameBox.getText().equals(username))
-							{
-								st = dbConn.prepareStatement("SELECT * FROM users WHERE username=?;");
-								st.setString(1, usernameBox.getText());
-								ResultSet rs = st.executeQuery();
-								rs.next();
-								if(rs.next())
-								{
-									MessageBox.showMessageBox(guiScreen, "Error", "Username " + usernameBox.getText() + " already exists");
-									return;
-								}
-								rs.close();
-								st.close();
-							}
+							
 							
 
 							st = dbConn.prepareStatement("UPDATE users "
 									+ "SET role=?, username=?, password=?, salt=? "
 									+ "WHERE username=?;");
 							String salt = GlobalState.getSalt();
-							String hashedPassword = GlobalState.get_SHA_512_SecurePassword(passwordBox.getText(), salt);
+							String hashedPassword = GlobalState.get_SHA_512_SecurePassword(passwordBox.getText().trim(), salt);
 
 							st.setString(3, hashedPassword);
 							st.setString(4, salt);
@@ -281,7 +387,7 @@ public class UserManagementWindow extends MicrocenterWindow {
 					Connection dbConn = GlobalState.getDBConnection();
 					try {
 						PreparedStatement st = dbConn.prepareStatement("DELETE FROM users WHERE username=?;");
-						st.setString(1, username);
+						st.setString(1, username.trim());
 						st.executeUpdate();
 						close();
 					} catch(SQLException e) {
