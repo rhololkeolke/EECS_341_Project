@@ -1,6 +1,9 @@
 package edu.cwru.eecs341project;
 
 import java.io.File;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -105,4 +108,36 @@ public class GlobalState {
 			}
 		}
 	}
+	
+	//Add salt
+    public static String getSalt() throws NoSuchAlgorithmException
+    {
+        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
+        byte[] salt = new byte[16];
+        sr.nextBytes(salt);
+        return salt.toString();
+    }
+    
+    public static String get_SHA_512_SecurePassword(String password, String salt)
+    {
+        MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("SHA-512");
+
+	        md.update(salt.getBytes());
+	        byte[] bytes = md.digest(password.getBytes());
+	        StringBuilder sb = new StringBuilder();
+	        for(int i=0; i< bytes.length ;i++)
+	        {
+	            sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
+	        }
+	        //Get complete hashed password in hex format
+	        return sb.toString();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return "";
+    }
 }
