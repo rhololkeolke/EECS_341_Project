@@ -587,7 +587,30 @@ public class ProductsWindow extends MicrocenterWindow {
 			mainPanel.addComponent(stockPanel);
 			
 			Panel buttonsPanel = new Panel(Panel.Orientation.HORISONTAL);
-			Button addToCartButton = new Button("Add to Cart");
+			Button addToCartButton = new Button("Add to Cart", new Action() {
+				@Override
+				public void doAction() {
+					if(Integer.parseInt(stockLabel.getText()) == 0)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "The currently selected store does not have any stock. Please try another store");
+						return;
+					}
+					String quantity = (String)TextInputDialog.showTextInputBox(guiScreen, "Quantity", "Enter amount", "1");
+					if(Integer.parseInt(quantity) > Integer.parseInt(stockLabel.getText()) - GlobalState.getCartItemQuantity(upc))
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "Sorry there is not enough stock to order that amount at this time");
+						return;
+					}
+					try {
+						GlobalState.addCartItem(upc, name, Integer.parseInt(quantity), unitPrice);
+					} catch (NumberFormatException e) {
+						MessageBox.showMessageBox(guiScreen, "Input Error", e.getMessage());
+						return;
+					} catch (Exception e) {
+						MessageBox.showMessageBox(guiScreen, "Error", e.getMessage());
+					}
+				}
+			});
 			buttonsPanel.addComponent(addToCartButton);
 			if(GlobalState.getUserRole() == GlobalState.UserRole.DBA || GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE)
 			{

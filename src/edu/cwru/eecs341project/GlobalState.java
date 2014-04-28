@@ -7,6 +7,7 @@ import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -23,6 +24,34 @@ public class GlobalState {
 	private static UserRole userRole = UserRole.ANONYMOUS;
 	private static Connection dbConnection = null;
 	private static String username = null;
+	private static ShoppingCart cart = new ShoppingCart();
+	
+	public static boolean cartIsEmpty() {
+		return (cart.getItems().size() == 0);
+	}
+	
+	public static List<CartItem> getCartItems() {
+		return cart.getItems();
+	}
+	
+	public static void addCartItem(Long upc, String name, int quantity, double price) throws Exception {
+		cart.addItem(new CartItem(upc, name, quantity, price));
+	}
+	
+	public static void removeCartItem(CartItem item) {
+		cart.removeItem(item);
+	}
+	
+	public static void updateCartItem(CartItem item) throws Exception {
+		cart.addItem(item);
+	}
+	
+	public static int getCartItemQuantity(Long upc) {
+		CartItem item = cart.getItem(new Long(upc));
+		if(item == null)
+			return 0;
+		return item.getQuantity();
+	}
 	
 	public static int getCustomerNumber() throws Exception {
 		if(userRole == UserRole.ANONYMOUS || userRole == UserRole.EMPLOYEE || userRole == UserRole.DBA)
@@ -68,7 +97,11 @@ public class GlobalState {
 				System.out.println("Error opening database settings file");
 				e.printStackTrace();
 			}
-			
+			if(doc == null)
+			{
+				System.out.println("Error opening database config file");
+				return dbConnection;
+			}
 			String user = doc.getElementsByTagName("user").item(0).getTextContent();
 			String password = doc.getElementsByTagName("password").item(0).getTextContent();
 			String host = doc.getElementsByTagName("host").item(0).getTextContent();
