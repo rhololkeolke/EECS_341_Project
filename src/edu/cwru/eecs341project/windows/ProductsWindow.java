@@ -14,6 +14,7 @@ import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.component.ActionListBox;
 import com.googlecode.lanterna.gui.component.Button;
+import com.googlecode.lanterna.gui.component.EditArea;
 import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.component.TextArea;
@@ -121,7 +122,7 @@ public class ProductsWindow extends MicrocenterWindow {
         		}
         	} else if(label.equals("Product Info")) {
         		String upcString = TextInputDialog.showTextInputBox(guiScreen, "Product UPC", "Enter the UPC of the product you want to see informaiton about", "");
-        		if(upcString == null)
+        		if(upcString == null || upcString.length() == 0)
         			return; // user canceled
         		ProductInfoWindow window = new ProductInfoWindow(guiScreen, Long.parseLong(upcString));
         		WindowManager.pushWindow(window);
@@ -303,7 +304,7 @@ public class ProductsWindow extends MicrocenterWindow {
 		
 		private Panel mainPanel;
 		private TextBox  nameBox;
-		private TextArea descArea;
+		private EditArea descEdit;
 		private TextBox unitPriceBox;
 		private Button brandButton;
 		private Button storeButton;
@@ -468,8 +469,8 @@ public class ProductsWindow extends MicrocenterWindow {
 				newlineDesc.append(line);
 				newlineDesc.append("\n");
 			}
-			descArea = new TextArea(newlineDesc.toString());
-			descPanel.addComponent(descArea);
+			descEdit = new EditArea(guiScreen.getScreen().getTerminalSize(), newlineDesc.toString());
+			descPanel.addComponent(descEdit);
 			mainPanel.addComponent(descPanel);
 			
 			Panel pricePanel = new Panel(Panel.Orientation.HORISONTAL);
@@ -590,7 +591,46 @@ public class ProductsWindow extends MicrocenterWindow {
 			buttonsPanel.addComponent(addToCartButton);
 			if(GlobalState.getUserRole() == GlobalState.UserRole.DBA || GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE)
 			{
-				Button saveButton = new Button("Save Changes");
+				Button saveButton = new Button("Save Changes", new Action() {
+					@Override
+					public void doAction() {
+						if(nameBox.getText().trim().length() == 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "Product name cannot be blank");
+							return;
+						}
+						if(descEdit.getData().trim().length() == 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "Product description cannot be blank");
+							return;
+						}
+						if(Double.parseDouble(unitPriceBox.getText()) < 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "Price must be positive");
+							return;
+						}
+						Connection dbConn = GlobalState.getDBConnection();
+						try{
+							PreparedStatement st = dbConn.prepareStatement(
+									"UPDATE product " +
+									"SET name=?,\"desc\"=?,unit_price=round((?)::numeric, 2), brand=(SELECT b.id " +
+									"                                                            FROM brand as b " +
+									"                                                            WHERE b.name = ? " +
+									"                                                            LIMIT 1);");
+							st.setString(1, nameBox.getText().trim());
+							st.setString(2, descEdit.getData().trim());
+							st.setDouble(3, Double.parseDouble(unitPriceBox.getText()));
+							st.setString(4, brandButton.getText());
+							st.executeUpdate();
+							st.close();
+							
+							MessageBox.showMessageBox(guiScreen, "Success", "Successfully saved changes");
+						} catch(SQLException e) {
+							MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+							System.out.println(e.getMessage());
+						}
+					}
+				});
 				buttonsPanel.addComponent(saveButton);
 			}
 			mainPanel.addComponent(buttonsPanel);
