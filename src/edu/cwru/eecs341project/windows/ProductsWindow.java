@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -425,7 +426,28 @@ public class ProductsWindow extends MicrocenterWindow {
 				brandButton = new Button(brand, new Action() {
 					@Override
 					public void doAction() {
-						MessageBox.showMessageBox(guiScreen, "TODO", "TODO");
+						Connection dbConn = GlobalState.getDBConnection();
+						try {
+							Statement st = dbConn.createStatement();
+							ResultSet rs = st.executeQuery(
+									"SELECT b.name " +
+									"FROM brand as b " +
+									"ORDER BY b.name;");
+							
+							List<String> brands = new ArrayList<String>();
+							while(rs.next())
+							{
+								brands.add(rs.getString(1));
+							}
+							
+							String selectedBrand = (String)ListSelectDialog.showDialog(guiScreen, "Brands", "Select the new brand of the item", brands.toArray());
+							if(selectedBrand == null)
+								return;
+							brandButton.setText(selectedBrand);
+						} catch(SQLException e) {
+							MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+							System.out.println(e.getMessage());
+						}
 					}
 				});
 				brandPanel.addComponent(brandButton);
