@@ -291,7 +291,7 @@ public class ProductsWindow extends MicrocenterWindow {
 	
 	private class ProductInfoWindow extends MicrocenterWindow
 	{
-		private final Long upc;
+		private Long upc;
 		private String name;
 		private String desc;
 		private double unitPrice;
@@ -307,7 +307,8 @@ public class ProductsWindow extends MicrocenterWindow {
 		private TextBox unitPriceBox;
 		private Button brandButton;
 		private Button storeButton;
-		public ProductInfoWindow(final GUIScreen guiScreen, Long upc)
+		private Label stockLabel;
+		public ProductInfoWindow(final GUIScreen guiScreen, final Long upc)
 		{
 			super(guiScreen, "Product Info", true, false);
 			this.upc = upc;
@@ -484,20 +485,114 @@ public class ProductsWindow extends MicrocenterWindow {
 			}
 			mainPanel.addComponent(pricePanel);
 
-			mainPanel.addComponent(new Button("View Specs"));
+			mainPanel.addComponent(new Button("View Specs", new Action() {
+				@Override
+				public void doAction() {
+					Connection dbConn = GlobalState.getDBConnection();
+					try{
+						PreparedStatement st = dbConn.prepareStatement(
+								"SELECT ps.desc, ps.value " +
+								"FROM product_spec as ps " +
+								"WHERE ps.upc = ?;");
+						st.setLong(1,upc);
+						ResultSet rs = st.executeQuery();
+						
+						List<String> specs = new ArrayList<String>();
+						while(rs.next())
+						{
+							specs.add(rs.getString(1) + " | " + rs.getString(2));
+						}
+						
+						rs.close();
+						st.close();
+						
+						if(specs.size() == 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Specs", "No specifications found for this product");
+							return;
+						}
+						
+						ListSelectDialog.showDialog(guiScreen, "Specifications", "", specs.toArray());
+					} catch(SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+						System.out.println(e.getMessage());
+					}
+				}
+			}));
 			
 			Panel stockPanel = new Panel(Panel.Orientation.HORISONTAL);
-			storeButton = new Button(currStoreName);
+			storeButton = new Button(currStoreName, new Action() {
+				@Override
+				public void doAction() {
+					Connection dbConn = GlobalState.getDBConnection();
+					try {
+						Statement st = dbConn.createStatement();
+						ResultSet rs = st.executeQuery(
+								"SELECT s.id, s.name " +
+								"FROM store as s " +
+								"ORDER BY s.id;");
+						
+						List<String> stores = new ArrayList<String>();
+						while(rs.next())
+						{
+							stores.add("["+rs.getInt(1)+"] "+rs.getString(2));
+						}
+						
+						rs.close();
+						st.close();
+						
+						if(stores.size() == 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "No stores found");
+							return;
+						}
+						
+						String selectedStore = (String)ListSelectDialog.showDialog(guiScreen, "Stores", "List of available stores", stores.toArray());
+						if(selectedStore == null)
+							return; // canceled
+						
+						String[] splitString = selectedStore.split(" ");
+						currStore = Integer.parseInt(splitString[0].substring(1,splitString[0].length()-1));
+						currStoreName = splitString[1];
+						storeButton.setText(currStoreName);
+						
+						// now update the stock
+						PreparedStatement pst = dbConn.prepareStatement(
+								"SELECT s.amount " +
+								"FROM stock as s " +
+								"WHERE s.store_id = ? AND " +
+								"      s.upc = ?;");
+						pst.setInt(1, currStore);
+						pst.setLong(2, upc);
+						rs = pst.executeQuery();
+						if(!rs.next())
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "No stock entry found for product");
+							return;
+						}
+						
+						stock = rs.getInt(1);
+						stockLabel.setText(""+stock);
+					} catch(SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+						System.out.println(e.getMessage());
+					}
+				}
+			});
 			stockPanel.addComponent(storeButton);
 			stockPanel.addComponent(new Label(" stock: "));
-			stockPanel.addComponent(new Label("" + stock));
+			stockLabel = new Label("" + stock);
+			stockPanel.addComponent(stockLabel);
 			mainPanel.addComponent(stockPanel);
 			
 			Panel buttonsPanel = new Panel(Panel.Orientation.HORISONTAL);
 			Button addToCartButton = new Button("Add to Cart");
 			buttonsPanel.addComponent(addToCartButton);
-			Button saveButton = new Button("Save Changes");
-			buttonsPanel.addComponent(saveButton);
+			if(GlobalState.getUserRole() == GlobalState.UserRole.DBA || GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE)
+			{
+				Button saveButton = new Button("Save Changes");
+				buttonsPanel.addComponent(saveButton);
+			}
 			mainPanel.addComponent(buttonsPanel);
 			
 			addComponent(mainPanel);
