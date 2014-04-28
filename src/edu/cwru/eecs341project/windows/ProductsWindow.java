@@ -380,12 +380,15 @@ public class ProductsWindow extends MicrocenterWindow {
 			mainPanel = new Panel();
 			
 			Panel categoryPanel = new Panel(Panel.Orientation.HORISONTAL);
-			for(String cat : categories)
+			for(final String cat : categories)
 			{
 				categoryPanel.addComponent(new Button(cat, new Action() {
 					@Override
 					public void doAction() {
-						MessageBox.showMessageBox(guiScreen, "TODO", "TODO");
+						close();
+						BrowseWindow window = new BrowseWindow(guiScreen, cat);
+						WindowManager.pushWindow(window);
+						guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
 					}
 				}));
 			}
