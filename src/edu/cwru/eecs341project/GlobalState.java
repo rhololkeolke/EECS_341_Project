@@ -34,8 +34,8 @@ public class GlobalState {
 		return cart.getItems();
 	}
 	
-	public static void addCartItem(Long upc, String name, int quantity, double price) throws Exception {
-		cart.addItem(new CartItem(upc, name, quantity, price));
+	public static void addCartItem(Long upc, int storeId, String storeName, String name, int quantity, double price) throws Exception {
+		cart.addItem(new CartItem(upc, storeId, storeName, name, quantity, price));
 	}
 	
 	public static void removeCartItem(CartItem item) {
@@ -46,8 +46,8 @@ public class GlobalState {
 		cart.addItem(item);
 	}
 	
-	public static int getCartItemQuantity(Long upc) {
-		CartItem item = cart.getItem(new Long(upc));
+	public static int getCartItemQuantity(Long upc, int storeId) {
+		CartItem item = cart.getItem(upc, storeId);
 		if(item == null)
 			return 0;
 		return item.getQuantity();

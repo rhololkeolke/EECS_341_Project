@@ -16,12 +16,13 @@ public class ShoppingCart {
 		return items;
 	}
 	
-	public CartItem getItem(Long upc)
+	public CartItem getItem(Long upc, int storeId)
 	{
-		for(int i=0; i<items.size(); i++)
+		
+		for(CartItem item : items)
 		{
-			if(items.get(i).equals(upc))
-				return items.get(i);
+			if(item.upc == upc && item.storeId == storeId)
+				return item;
 		}
 		return null;
 	}

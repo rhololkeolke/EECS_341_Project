@@ -596,13 +596,15 @@ public class ProductsWindow extends MicrocenterWindow {
 						return;
 					}
 					String quantity = (String)TextInputDialog.showTextInputBox(guiScreen, "Quantity", "Enter amount", "1");
-					if(Integer.parseInt(quantity) > Integer.parseInt(stockLabel.getText()) - GlobalState.getCartItemQuantity(upc))
+					if(quantity == null || quantity.length() == 0)
+						return; // user aborted
+					if(Integer.parseInt(quantity) > Integer.parseInt(stockLabel.getText()) - GlobalState.getCartItemQuantity(upc, currStore))
 					{
 						MessageBox.showMessageBox(guiScreen, "Error", "Sorry there is not enough stock to order that amount at this time");
 						return;
 					}
 					try {
-						GlobalState.addCartItem(upc, name, Integer.parseInt(quantity), unitPrice);
+						GlobalState.addCartItem(upc, currStore, currStoreName, name, Integer.parseInt(quantity), unitPrice);
 					} catch (NumberFormatException e) {
 						MessageBox.showMessageBox(guiScreen, "Input Error", e.getMessage());
 						return;

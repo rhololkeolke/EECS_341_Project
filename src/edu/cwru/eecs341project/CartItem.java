@@ -2,13 +2,17 @@ package edu.cwru.eecs341project;
 
 public class CartItem {
 		public final Long upc;
+		public final int storeId;
+		public final String storeName;
 		public final String name;
 		private int quantity;
 		public final double price;
 		
-		public CartItem(Long upc, String name, int quantity, double price) throws Exception
+		public CartItem(Long upc, int storeId, String storeName, String name, int quantity, double price) throws Exception
 		{
 			this.upc = upc;
+			this.storeId = storeId;
+			this.storeName = storeName;
 			this.name = name;
 			if(quantity < 0)
 				throw new Exception("quantity must be >= 0");
@@ -35,12 +39,11 @@ public class CartItem {
 			if(obj instanceof CartItem)
 			{
 				CartItem j = (CartItem)obj;
-				if(this.upc == j.upc)
-					return true;
-			} else if(obj instanceof Long) {
-				Long j = (Long)obj;
-				if(j.equals(this.upc))
-					return true;
+				if(this.upc != j.upc)
+					return false;
+				if(this.storeId != j.storeId)
+					return false;
+				return true;
 			}
 			return false;
 		}
