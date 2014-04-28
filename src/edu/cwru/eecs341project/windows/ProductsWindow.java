@@ -125,10 +125,161 @@ public class ProductsWindow extends MicrocenterWindow {
         		ProductInfoWindow window = new ProductInfoWindow(guiScreen, Long.parseLong(upcString));
         		WindowManager.pushWindow(window);
         		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+        	} else if(label.equals("Browse")) {
+        		BrowseWindow window = new BrowseWindow(guiScreen, "Root");
+        		WindowManager.pushWindow(window);
+        		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	} else {
         		MessageBox.showMessageBox(guiScreen, "Action", "Selected " + label);
         	}
         }
+	}
+	
+	private class BrowseWindow extends MicrocenterWindow
+	{
+		Panel mainPanel;
+		List<String> categories;
+		List<String> products;
+		Map<String, Long> productMap;
+		public BrowseWindow(final GUIScreen guiScreen, String category_name)
+		{
+			super(guiScreen, "Browing " + category_name, true, false);
+			
+			mainPanel = new Panel();
+			
+			Connection dbConn = GlobalState.getDBConnection();
+			try {
+				PreparedStatement st = dbConn.prepareStatement(
+						"SELECT hc.name " +
+						"FROM product_type_tree AS hp " +
+						"     JOIN product_type_tree AS hc " +
+						"     ON hc.lft BETWEEN hp.lft and hp.rgt " +
+						"WHERE hp.name = ? AND " +
+						"      (SELECT COUNT(*) " +
+						"       FROM product_type_tree hn " +
+						"       WHERE hc.lft BETWEEN hn.lft and hn.rgt and hn.lft BETWEEN " +
+						"             hp.lft AND hp.rgt) = " +
+						"      1 + (SELECT COUNT(*) " +
+						"           FROM product_type_tree hn " +
+						"           WHERE hc.lft BETWEEN hn.lft and hn.rgt " +
+						"           AND hn.lft BETWEEN hp.lft and hp.rgt and hn.name = ?);");
+				st.setString(1, category_name);
+				st.setString(2, category_name);
+				ResultSet rs = st.executeQuery();
+				
+				categories = new ArrayList<String>();
+				while(rs.next())
+				{
+					categories.add(rs.getString(1));
+				}
+				
+				rs.close();
+				st.close();
+				
+				// this is a leaf category
+				if(categories.size() > 0)
+				{
+					ActionListBox categoryList = new ActionListBox();
+					for(String category : categories)
+					{
+						categoryList.addAction(new CategoryListItem(category));
+					}
+					
+					mainPanel.addComponent(categoryList);
+				}
+				else
+				{
+					products = new ArrayList<String>();
+					productMap = new HashMap<String, Long>();
+					st = dbConn.prepareStatement(
+							"SELECT p.upc, substring(p.name for 27), b.name, substring(p.desc for 27) " +
+		        			"FROM product as p, " +
+		        			"     brand as b, " +
+		        			"     product_type as pt, " +
+		        			"     product_type_tree as ptt " +
+		        			"WHERE p.brand = b.id AND " +
+		        			"      p.upc = pt.upc AND " +
+		        			"      pt.id = ptt.id AND " +
+		        			"      ptt.name = ?;");
+					st.setString(1, category_name);
+					rs = st.executeQuery();
+					
+					while(rs.next())
+					{
+						StringBuilder displayName = new StringBuilder();
+        				displayName.append(rs.getString(1));
+        				displayName.append(" | ");
+        				displayName.append(rs.getString(2));
+        				displayName.append(" | ");
+        				displayName.append(rs.getString(3));
+        				displayName.append(" | ");
+        				displayName.append(rs.getString(4));
+        				products.add(displayName.toString());
+        				
+        				productMap.put(displayName.toString(), rs.getLong(1));
+					}
+					
+					ActionListBox productList = new ActionListBox();
+					for(String product : products)
+					{
+						productList.addAction(new ProductListItem(product, productMap.get(product)));
+					}
+					mainPanel.addComponent(productList);
+				}
+			} catch(SQLException e) {
+				MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+				System.out.println(e.getMessage());
+			}
+			
+			addComponent(mainPanel);
+			
+		}
+		
+		private class ProductListItem implements Action {
+			private String label;
+			private Long upc;
+			
+			public ProductListItem(String label, Long upc) 
+			{
+				this.label = label;
+				this.upc = upc;
+			}
+			
+			@Override
+			public String toString() {
+				return label;
+			}
+			
+			@Override
+			public void doAction()
+			{
+				ProductInfoWindow window = new ProductInfoWindow(guiScreen, upc);
+				WindowManager.pushWindow(window);
+				guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+			}
+		}
+		
+		private class CategoryListItem implements Action {
+			private String label;
+			
+			public CategoryListItem(String label)
+			{
+				this.label = label;
+			}
+			
+			@Override
+			public String toString() {
+				return label;
+			}
+			
+			@Override
+			public void doAction() 
+			{
+				BrowseWindow window = new BrowseWindow(guiScreen, label);
+				WindowManager.pushWindow(window);
+				guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+			}
+		}
 	}
 	
 	private class ProductInfoWindow extends MicrocenterWindow
