@@ -129,6 +129,12 @@ public class ProductsWindow extends MicrocenterWindow {
         		BrowseWindow window = new BrowseWindow(guiScreen, "Root");
         		WindowManager.pushWindow(window);
         		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+        	} else if(label.equals("Compare Products")) {
+        		Long upc1 = Long.parseLong((String)TextInputDialog.showTextInputBox(guiScreen, "Product 1", "Enter a upc", ""));
+        		Long upc2 = Long.parseLong((String)TextInputDialog.showTextInputBox(guiScreen, "Product 2", "Enter a upc", ""));
+        		CompareProductsWindow window = new CompareProductsWindow(guiScreen, upc1, upc2);
+        		WindowManager.pushWindow(window);
+        		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	} else {
         		MessageBox.showMessageBox(guiScreen, "Action", "Selected " + label);
         	}
@@ -477,4 +483,98 @@ public class ProductsWindow extends MicrocenterWindow {
 		
 	}
 
+	private class CompareProductsWindow extends MicrocenterWindow
+	{
+		Panel mainPanel;
+		List<String> specDesc;
+		List<String> p1Specs;
+		List<String> p2Specs;
+		public CompareProductsWindow(final GUIScreen guiScreen, Long upc1, Long upc2)
+		{
+			super(guiScreen, "Comparing " + upc1 + " and " + upc2, true, false);
+			
+			mainPanel = new Panel();
+			
+			Connection dbConn = GlobalState.getDBConnection();
+			try{
+				PreparedStatement st = dbConn.prepareStatement(
+						"SELECT p1.desc, p1.value, p2.desc, p2.value " +
+						"FROM (SELECT * " +
+						"      FROM product_spec " +
+						"      WHERE upc=?) as p1 " +
+						"     FULL OUTER JOIN " +
+						"    (SELECT * " +
+						"     FROM product_spec " +
+						"     WHERE upc=?) as p2 " +
+						"    ON p1.desc = p2.desc;");
+				st.setLong(1, upc1);
+				st.setLong(2, upc2);
+				ResultSet rs = st.executeQuery();
+				
+				specDesc = new ArrayList<String>();
+				p1Specs = new ArrayList<String>();
+				p2Specs = new ArrayList<String>();
+				
+				while(rs.next())
+				{
+					String desc1 = rs.getString(1);
+					String desc2 = rs.getString(3);
+
+					if(desc1 == null)
+					{
+						specDesc.add(desc2+": ");
+					}
+					else
+					{
+						specDesc.add(desc1+": ");
+					}
+					
+					String val = rs.getString(2);
+					
+					if(val == null)
+					{
+						p1Specs.add(" - ");
+					}
+					else
+					{
+						p1Specs.add(val);
+					}
+					
+					val = rs.getString(4);
+					if(val == null)
+					{
+						p2Specs.add(" - ");
+					}
+					else
+					{
+						p2Specs.add(val);
+					}
+				}
+				
+				StringBuilder comparison = new StringBuilder();
+				comparison.append("Description | " + upc1 + " Specs | " + upc2 + " Specs\n");
+				comparison.append("------------------------------------------------------\n");
+				
+				for(int i=0; i<specDesc.size(); i++)
+				{
+					comparison.append(specDesc.get(i));
+					comparison.append(p1Specs.get(i));
+					comparison.append(" | ");
+					comparison.append(p2Specs.get(i));
+					comparison.append("\n");
+				}
+				
+				TextArea comparisonArea = new TextArea(comparison.toString());
+				mainPanel.addComponent(comparisonArea);
+				
+			} catch(SQLException e) {
+				MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+				System.out.println(e.getMessage());
+				close();
+				return;
+			}
+			
+			addComponent(mainPanel);
+		}
+	}
 }
