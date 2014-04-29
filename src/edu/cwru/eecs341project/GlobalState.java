@@ -20,6 +20,13 @@ public class GlobalState {
 		ANONYMOUS, CUSTOMER, EMPLOYEE, DBA
 	}
 	
+	public static class MixedStoreOrderException extends Exception {
+		public MixedStoreOrderException(String message)
+		{
+			super(message);
+		}
+	}
+	
 	private static int customerNumber = -1;
 	private static UserRole userRole = UserRole.ANONYMOUS;
 	private static Connection dbConnection = null;
@@ -35,13 +42,26 @@ public class GlobalState {
 		return cart.getItems();
 	}
 	
-	public static void addCartItem(Long upc, int storeId, String storeName, String name, int quantity, double price) throws Exception {
+	public static void addCartItem(Long upc, int storeId, String storeName, String name, int quantity, double price) throws Exception, MixedStoreOrderException {
+		List<CartItem> items = cart.getItems();
+		for(CartItem item : items)
+		{
+			if(item.storeId != storeId)
+				throw new MixedStoreOrderException("Error: Cannot order from multiple stores in a single order");
+		}
+		
 		cart.addItem(new CartItem(upc, storeId, storeName, name, quantity, price));
 		WindowManager.refreshAllWindows();
 	}
 	
-	public static void addCartItem(CartItem i) throws Exception
+	public static void addCartItem(CartItem i) throws Exception, MixedStoreOrderException
 	{
+		List<CartItem> items = cart.getItems();
+		for(CartItem item : items)
+		{
+			if(item.storeId != i.storeId)
+				throw new MixedStoreOrderException("Error: Cannot order from multiple stores in a single order");
+		}
 		cart.addItem(i);
 		WindowManager.refreshAllWindows();
 	}
@@ -51,7 +71,13 @@ public class GlobalState {
 		WindowManager.refreshAllWindows();
 	}
 	
-	public static void updateCartItem(CartItem item) throws Exception {
+	public static void updateCartItem(CartItem item) throws Exception, MixedStoreOrderException {
+		List<CartItem> items = cart.getItems();
+		for(CartItem existingItem : items)
+		{
+			if(item.storeId != existingItem.storeId)
+				throw new MixedStoreOrderException("Error: Cannot order from multiple stores in a single order");
+		}
 		cart.addItem(item);
 		WindowManager.refreshAllWindows();
 	}
