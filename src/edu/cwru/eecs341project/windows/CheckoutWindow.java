@@ -58,6 +58,15 @@ public class CheckoutWindow extends MicrocenterWindow{
 			quantityBoxes.add(quantityBox);
 			rightPanel.addComponent(quantityBox);	
 		}
+		leftPanel.addComponent(new Label(""));
+		middlePanel.addComponent(new Label("--------"));
+		leftPanel.addComponent(new Label("Total:"));
+		double totalCost = 0;
+		for(CartItem item : items)
+		{
+			totalCost += item.price*item.getQuantity();
+		}
+		middlePanel.addComponent(new Label(String.format("$%.2f", totalCost)));
 		cartPanel.addComponent(leftPanel);
 		cartPanel.addComponent(middlePanel);
 		cartPanel.addComponent(rightPanel);
