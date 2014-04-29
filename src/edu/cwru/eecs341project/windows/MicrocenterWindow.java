@@ -62,6 +62,9 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         mainPanel.addShortcut('c', true, false, new Action() {
         	@Override
         	public void doAction() {
+        		if(GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE || GlobalState.getUserRole() == GlobalState.UserRole.DBA)
+        			return; // checkout disabled for non-customers
+        		
         		if(GlobalState.cartIsEmpty())
         		{
         			MessageBox.showMessageBox(guiScreen, "Cart", "Your shopping cart is empty. Please add products and then try again");
