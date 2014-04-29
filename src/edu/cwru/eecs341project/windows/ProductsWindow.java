@@ -587,34 +587,37 @@ public class ProductsWindow extends MicrocenterWindow {
 			mainPanel.addComponent(stockPanel);
 			
 			Panel buttonsPanel = new Panel(Panel.Orientation.HORISONTAL);
-			Button addToCartButton = new Button("Add to Cart", new Action() {
-				@Override
-				public void doAction() {
-					if(Integer.parseInt(stockLabel.getText()) == 0)
-					{
-						MessageBox.showMessageBox(guiScreen, "Error", "The currently selected store does not have any stock. Please try another store");
-						return;
+			if(GlobalState.getUserRole() == GlobalState.UserRole.ANONYMOUS || GlobalState.getUserRole() == GlobalState.UserRole.CUSTOMER)
+			{
+				Button addToCartButton = new Button("Add to Cart", new Action() {
+					@Override
+					public void doAction() {
+						if(Integer.parseInt(stockLabel.getText()) == 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "The currently selected store does not have any stock. Please try another store");
+							return;
+						}
+						String quantity = (String)TextInputDialog.showTextInputBox(guiScreen, "Quantity", "Enter amount", "1");
+						if(quantity == null || quantity.length() == 0)
+							return; // user aborted
+						if(Integer.parseInt(quantity) > Integer.parseInt(stockLabel.getText()) - GlobalState.getCartItemQuantity(upc, currStore))
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "Sorry there is not enough stock to order that amount at this time");
+							return;
+						}
+						try {
+							GlobalState.addCartItem(upc, currStore, currStoreName, name, Integer.parseInt(quantity), unitPrice);
+						} catch (NumberFormatException e) {
+							MessageBox.showMessageBox(guiScreen, "Input Error", e.getMessage());
+							return;
+						} catch (Exception e) {
+							MessageBox.showMessageBox(guiScreen, "Error", e.getMessage());
+						}
 					}
-					String quantity = (String)TextInputDialog.showTextInputBox(guiScreen, "Quantity", "Enter amount", "1");
-					if(quantity == null || quantity.length() == 0)
-						return; // user aborted
-					if(Integer.parseInt(quantity) > Integer.parseInt(stockLabel.getText()) - GlobalState.getCartItemQuantity(upc, currStore))
-					{
-						MessageBox.showMessageBox(guiScreen, "Error", "Sorry there is not enough stock to order that amount at this time");
-						return;
-					}
-					try {
-						GlobalState.addCartItem(upc, currStore, currStoreName, name, Integer.parseInt(quantity), unitPrice);
-					} catch (NumberFormatException e) {
-						MessageBox.showMessageBox(guiScreen, "Input Error", e.getMessage());
-						return;
-					} catch (Exception e) {
-						MessageBox.showMessageBox(guiScreen, "Error", e.getMessage());
-					}
-				}
-			});
-			buttonsPanel.addComponent(addToCartButton);
-			if(GlobalState.getUserRole() == GlobalState.UserRole.DBA || GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE)
+				});
+				buttonsPanel.addComponent(addToCartButton);
+			}
+			else
 			{
 				Button saveButton = new Button("Save Changes", new Action() {
 					@Override
