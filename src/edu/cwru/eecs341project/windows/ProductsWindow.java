@@ -31,7 +31,7 @@ public class ProductsWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
 
 	public ProductsWindow(GUIScreen guiScreen) {
-		super(guiScreen, "Products", true, false);
+		super(guiScreen, "Products", true);
 		
 		actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();
@@ -151,7 +151,7 @@ public class ProductsWindow extends MicrocenterWindow {
 		Map<String, Long> productMap;
 		public BrowseWindow(final GUIScreen guiScreen, String category_name)
 		{
-			super(guiScreen, "Browing " + category_name, true, false);
+			super(guiScreen, "Browing " + category_name, true);
 			
 			mainPanel = new Panel();
 			
@@ -311,7 +311,7 @@ public class ProductsWindow extends MicrocenterWindow {
 		private Label stockLabel;
 		public ProductInfoWindow(final GUIScreen guiScreen, final Long upc)
 		{
-			super(guiScreen, "Product Info", true, false);
+			super(guiScreen, "Product Info", true);
 			this.upc = upc;
 			
 			Connection dbConn = GlobalState.getDBConnection();
@@ -673,7 +673,7 @@ public class ProductsWindow extends MicrocenterWindow {
 		List<String> p2Specs;
 		public CompareProductsWindow(final GUIScreen guiScreen, Long upc1, Long upc2)
 		{
-			super(guiScreen, "Comparing " + upc1 + " and " + upc2, true, false);
+			super(guiScreen, "Comparing " + upc1 + " and " + upc2, true);
 			
 			mainPanel = new Panel();
 			

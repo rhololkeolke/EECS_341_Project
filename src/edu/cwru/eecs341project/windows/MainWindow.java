@@ -12,7 +12,7 @@ public class MainWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
 	
 	public MainWindow(GUIScreen guiScreen) {
-		super(guiScreen, "Microcenter Store Application", false, false);
+		super(guiScreen, "Microcenter Store Application", false);
 		
 		updateActionList();
 	}
@@ -51,7 +51,7 @@ public class MainWindow extends MicrocenterWindow {
         public void doAction() {
         	if(label.equals("User Management"))
         	{
-        		guiScreen.showWindow(new UserManagementWindow(guiScreen, "User Management", false), GUIScreen.Position.FULL_SCREEN);
+        		guiScreen.showWindow(new UserManagementWindow(guiScreen, "User Management"), GUIScreen.Position.FULL_SCREEN);
         	} else if(label.equals("Database")) {
         		guiScreen.showWindow(new DatabaseWindow(guiScreen, "Database"), GUIScreen.Position.FULL_SCREEN);
         	} else if(label.equals("Products")) {

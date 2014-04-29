@@ -10,7 +10,7 @@ public class CustomersWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
 
 	public CustomersWindow(GUIScreen guiScreen) {
-		super(guiScreen, "Customers", true, false);
+		super(guiScreen, "Customers", true);
 		
 		actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();

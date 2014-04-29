@@ -36,7 +36,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	
 	private List<AddedComponent> addedComponents;
 	
-	public MicrocenterWindow(final GUIScreen guiScreen, String label, boolean back, boolean checkout) {
+	public MicrocenterWindow(final GUIScreen guiScreen, String label, boolean back) {
 		super(label);
 		
 		this.back = back;
@@ -47,7 +47,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 		
 		mainPanel = new Panel();
 		
-		menuPanel = new MenuPanel(back, checkout);
+		menuPanel = new MenuPanel(back);
 		mainPanel.addComponent(menuPanel);
 		
 		mainPanel.addComponent(new Label(""));
@@ -62,7 +62,14 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         mainPanel.addShortcut('c', true, false, new Action() {
         	@Override
         	public void doAction() {
-        		MessageBox.showMessageBox(guiScreen, "Checkout", "Not yet implemented");
+        		if(GlobalState.cartIsEmpty())
+        		{
+        			MessageBox.showMessageBox(guiScreen, "Cart", "Your shopping cart is empty. Please add products and then try again");
+        			return;
+        		}
+        		CheckoutWindow window = new CheckoutWindow(guiScreen);
+        		WindowManager.pushWindow(window);
+        		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	}
         });
         
@@ -320,7 +327,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	@Override
 	public void refresh(){
 		mainPanel.removeAllComponents();
-		menuPanel = new MenuPanel(back, checkout);
+		menuPanel = new MenuPanel(back);
 		mainPanel.addComponent(menuPanel);
 		mainPanel.addComponent(new Label(""));
 		mainPanel.addComponent(new Label(""));

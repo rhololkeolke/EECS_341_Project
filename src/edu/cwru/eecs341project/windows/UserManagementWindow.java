@@ -32,8 +32,8 @@ public class UserManagementWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
 	private final GUIScreen guiScreen;
 
-	public UserManagementWindow(final GUIScreen guiScreen, String label, boolean checkout) {
-		super(guiScreen, label, true, checkout);
+	public UserManagementWindow(final GUIScreen guiScreen, String label) {
+		super(guiScreen, label, true);
 		this.guiScreen = guiScreen;
 		
 		actionsPanel = new Panel();
@@ -165,7 +165,7 @@ public class UserManagementWindow extends MicrocenterWindow {
 		
 		public CreateUserWindow(final GUIScreen guiScreen)
 		{
-			super(guiScreen, "Create User", true, false);
+			super(guiScreen, "Create User", true);
 			mainPanel = new Panel();
 			
 			Panel usernamePanel = new Panel(Panel.Orientation.HORISONTAL);
@@ -267,7 +267,7 @@ public class UserManagementWindow extends MicrocenterWindow {
 		
 		public UserInfoWindow(final GUIScreen guiScreen, final String username, String accountType)
 		{
-			super(guiScreen, "User Info", true, false);
+			super(guiScreen, "User Info", true);
 			mainPanel = new Panel();
 			
 			Panel usernamePanel = new Panel(Panel.Orientation.HORISONTAL);

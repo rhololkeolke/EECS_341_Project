@@ -36,14 +36,23 @@ public class GlobalState {
 	
 	public static void addCartItem(Long upc, int storeId, String storeName, String name, int quantity, double price) throws Exception {
 		cart.addItem(new CartItem(upc, storeId, storeName, name, quantity, price));
+		WindowManager.refreshAllWindows();
+	}
+	
+	public static void addCartItem(CartItem i) throws Exception
+	{
+		cart.addItem(i);
+		WindowManager.refreshAllWindows();
 	}
 	
 	public static void removeCartItem(CartItem item) {
 		cart.removeItem(item);
+		WindowManager.refreshAllWindows();
 	}
 	
 	public static void updateCartItem(CartItem item) throws Exception {
 		cart.addItem(item);
+		WindowManager.refreshAllWindows();
 	}
 	
 	public static int getCartItemQuantity(Long upc, int storeId) {
