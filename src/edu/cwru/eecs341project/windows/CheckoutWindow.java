@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -261,12 +262,142 @@ public class CheckoutWindow extends MicrocenterWindow{
 	
 	public class NewShippingLocation extends MicrocenterWindow {
 		private Panel mainPanel;
-		public NewShippingLocation(GUIScreen guiScreen)
+		private TextBox nameBox, street1Box, street2Box, cityBox, stateBox, zipBox;
+		public NewShippingLocation(final GUIScreen guiScreen)
 		{
 			super(guiScreen, "New Shipping Location", true);
 			
 			mainPanel = new Panel();
-			mainPanel.addComponent(new Button("nextPage"));
+			
+			Panel infoPanel = new Panel(Panel.Orientation.HORISONTAL);
+			Panel leftPanel = new Panel();
+			Panel rightPanel = new Panel();
+			
+			leftPanel.addComponent(new Label("Location name: "));
+			nameBox = new TextBox();
+			rightPanel.addComponent(nameBox);
+			
+			leftPanel.addComponent(new Label("Street 1: "));
+			street1Box = new TextBox();
+			rightPanel.addComponent(street1Box);
+			
+			leftPanel.addComponent(new Label("Street 2: "));
+			street2Box = new TextBox();
+			rightPanel.addComponent(street2Box);
+			
+			leftPanel.addComponent(new Label("City: "));
+			cityBox = new TextBox();
+			rightPanel.addComponent(cityBox);
+			
+			leftPanel.addComponent(new Label("State: "));
+			stateBox = new TextBox();
+			rightPanel.addComponent(stateBox);
+			
+			leftPanel.addComponent(new Label("Zip: "));
+			zipBox = new TextBox();
+			rightPanel.addComponent(zipBox);
+			
+			infoPanel.addComponent(leftPanel);
+			infoPanel.addComponent(rightPanel);
+			mainPanel.addComponent(infoPanel);
+			
+			mainPanel.addComponent(new Button("nextPage", new Action() {
+				@Override
+				public void doAction() {
+					Connection dbConn = GlobalState.getDBConnection();
+					if(nameBox.getText().trim().length() == 0)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "Shipping Location name cannot be blank");
+						return;
+					}
+					if(street1Box.getText().trim().length() == 0)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "Street1 cannot be blank");
+						return;
+					}
+					if(cityBox.getText().trim().length() == 0)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "City cannot be blank");
+						return;
+					}
+					if(stateBox.getText().trim().length() != 2)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "State must be a two letter abbreviation");
+						return;
+					}
+					if(zipBox.getText().trim().length() == 0)
+					{
+						MessageBox.showMessageBox(guiScreen, "Error", "Zip cannot be blank");
+						return;
+					}
+					try {
+						String[] id_col = {"id"};
+						PreparedStatement st = dbConn.prepareStatement(
+								"INSERT INTO shipping_location(loyalty_number, name, street1, street2, city, state, zip) " +
+								"VALUES (?, ?, ?, ?, ?, ?, ?);", id_col);
+						int loyalty_number;
+						if(GlobalState.getUserRole() == GlobalState.UserRole.CUSTOMER)
+						{
+							loyalty_number = GlobalState.getCustomerNumber();
+						}
+						else
+						{
+							loyalty_number = GlobalState.anonymousCustNum;
+						}
+						st.setInt(1, loyalty_number);
+						st.setString(2, nameBox.getText().trim());
+						st.setString(3, street1Box.getText().trim());
+						if(street2Box.getText().trim().length() == 0)
+						{
+							st.setString(4, null);
+						}
+						else
+						{
+							st.setString(4, street2Box.getText().trim());
+						}
+						st.setString(5, cityBox.getText().trim());
+						st.setString(6, stateBox.getText().trim());
+						st.setInt(7, Integer.parseInt(zipBox.getText().trim()));
+						if(st.executeUpdate() <= 0)
+						{
+							st.close();
+							MessageBox.showMessageBox(guiScreen, "Error", "Could not create shipping location");
+							return;
+						}
+						st.close();
+												
+						st = dbConn.prepareStatement(
+								"SELECT sl.id " +
+								"FROM shipping_location as sl " +
+								"WHERE loyalty_number = ? AND " +
+								"      name = ? " +
+								"LIMIT 1;");
+						st.setInt(1, loyalty_number);
+						st.setString(2, nameBox.getText().trim());
+						ResultSet rs = st.executeQuery();
+						
+						if(!rs.next())
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "Could not create shipping location");
+							return;
+						}
+						
+						Integer shipId = rs.getInt(1);
+						rs.close();
+						st.close();
+						
+						close();
+						PaymentWindow window = new PaymentWindow(guiScreen, shipId);
+						WindowManager.pushWindow(window);
+						guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+
+					} catch(SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}));
 			addComponent(mainPanel);
 		}
 	}
