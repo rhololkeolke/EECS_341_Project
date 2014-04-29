@@ -20,6 +20,7 @@ import com.googlecode.lanterna.gui.component.RadioCheckBoxList;
 import com.googlecode.lanterna.gui.component.TextBox;
 import com.googlecode.lanterna.gui.dialog.DialogButtons;
 import com.googlecode.lanterna.gui.dialog.DialogResult;
+import com.googlecode.lanterna.gui.dialog.ListSelectDialog;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
 
 import edu.cwru.eecs341project.CartItem;
@@ -161,9 +162,9 @@ public class CheckoutWindow extends MicrocenterWindow{
 					// spawn the payment window
 					window = new PaymentWindow(guiScreen, null);
 				}
+				close();
 				WindowManager.pushWindow(window);
 				guiScreen.showWindow((Window) window, GUIScreen.Position.FULL_SCREEN);
-				close();
 			}
 		}));
 		
@@ -180,14 +181,132 @@ public class CheckoutWindow extends MicrocenterWindow{
 	public class PaymentWindow extends MicrocenterWindow {
 		private Panel mainPanel;
 		private Integer shipId;
-		public PaymentWindow(GUIScreen guiScreen, Integer shipId)
+		private String paymentType;
+		private Button paymentTypeButton;
+		private Button cardTypeButton = null;
+		private TextBox cashAmountBox = null;
+		private Panel paymentPanel;
+		private final String[] deliveryPaymentTypes = {"gift card", "credit card"};
+		private final String[] allPaymentTypes = {"gift card", "credit card", "check", "money order", "cash"};
+		public PaymentWindow(final GUIScreen guiScreen, final Integer shipId)
 		{
 			super(guiScreen, "Payment", true);
 			this.shipId = shipId;
 			
 			mainPanel = new Panel();
-			mainPanel.addComponent(new Button("Test"));
+			
+			double itemCost = getItemCost();
+			double shipCost = 0;
+			if(shipId != null)
+				shipCost = 10.0;
+			
+			Panel costPanel = new Panel(Panel.Orientation.HORISONTAL);
+			Panel leftPanel = new Panel();
+			Panel rightPanel = new Panel();
+			leftPanel.addComponent(new Label("Cost: "));
+			rightPanel.addComponent(new Label(String.format("$%.2f", itemCost)));
+			leftPanel.addComponent(new Label("Shipping: "));
+			rightPanel.addComponent(new Label(String.format("$%.2f", shipCost)));
+			leftPanel.addComponent(new Label("Tax: "));
+			rightPanel.addComponent(new Label(String.format("$%.2f", itemCost*.07)));
+			leftPanel.addComponent(new Label(""));
+			rightPanel.addComponent(new Label("---------"));
+			leftPanel.addComponent(new Label("Total: "));
+			rightPanel.addComponent(new Label(String.format("$%.2f", itemCost*1.07 + shipCost)));
+			costPanel.addComponent(leftPanel);
+			costPanel.addComponent(rightPanel);
+			mainPanel.addComponent(costPanel);
+			
+			cardTypeButton = new Button("Mastercard", new Action() {
+				@Override
+				public void doAction() {
+					String[] options = {"mastercard", "visa", "american express", "discover"};
+					String selected = (String)ListSelectDialog.showDialog(guiScreen, "Card Type", "Select card type", options);
+					if(selected == null)
+						return;
+					cardTypeButton.setText(selected);
+				}
+			});
+			
+			paymentTypeButton = new Button("Credit Card", new Action() {
+				@Override
+				public void doAction() {
+					if(shipId != null)
+						paymentType = (String)ListSelectDialog.showDialog(guiScreen, "Payment Type", "Select payment type", deliveryPaymentTypes);
+					else
+						paymentType = (String)ListSelectDialog.showDialog(guiScreen, "Payment Type", "Select payment type", allPaymentTypes);
+					if(paymentType == null)
+					{
+						paymentType = "credit card";
+						return; // user canceled
+					}
+					
+					if(paymentType.equals("credit card"))
+					{
+						paymentPanel.removeAllComponents();
+						cashAmountBox = null;
+						paymentPanel.addComponent(creditCardPanel());
+					}
+					else if(paymentType.equals("cash"))
+					{
+						paymentPanel.removeAllComponents();
+						cardTypeButton = null;
+						paymentPanel.addComponent(cashPanel());
+					}
+					else
+					{
+						paymentPanel.removeAllComponents();
+					}
+				}
+			});
+			mainPanel.addComponent(paymentTypeButton);
+			
+			paymentPanel = new Panel();
+			paymentPanel.addComponent(creditCardPanel());
+			mainPanel.addComponent(paymentPanel);
+			
+			mainPanel.addComponent(new Button("Complete Purchase"));
 			addComponent(mainPanel);
+		}
+		
+		private double getItemCost()
+		{
+			double itemCost = 0;
+			for(CartItem item : GlobalState.getCartItems())
+			{
+				itemCost += item.price*item.getQuantity();
+			}
+			
+			return itemCost;
+		}
+		
+		private Panel creditCardPanel() {
+			Panel creditPanel = new Panel(Panel.Orientation.HORISONTAL);
+			Panel leftPanel = new Panel();
+			Panel rightPanel = new Panel();
+			
+			leftPanel.addComponent(new Label("Card Type: "));
+			rightPanel.addComponent(cardTypeButton);
+			leftPanel.addComponent(new Label("Cardholder Name: "));
+			rightPanel.addComponent(new TextBox(""));
+			leftPanel.addComponent(new Label("Card number: "));
+			rightPanel.addComponent(new TextBox(""));
+			leftPanel.addComponent(new Label("Exp. Date: "));
+			rightPanel.addComponent(new TextBox(""));
+			leftPanel.addComponent(new Label("CCV: "));
+			rightPanel.addComponent(new TextBox(""));
+			
+			creditPanel.addComponent(leftPanel);
+			creditPanel.addComponent(rightPanel);
+			return creditPanel;
+		}
+		
+		private Panel cashPanel() {
+			Panel cashPanel = new Panel(Panel.Orientation.HORISONTAL);
+			cashPanel.addComponent(new Label("Amount: "));
+			cashAmountBox = new TextBox("");
+			cashPanel.addComponent(cashAmountBox);
+			return cashPanel;
 		}
 	}
 	
