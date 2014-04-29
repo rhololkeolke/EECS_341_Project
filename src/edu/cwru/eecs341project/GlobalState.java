@@ -25,6 +25,7 @@ public class GlobalState {
 	private static Connection dbConnection = null;
 	private static String username = null;
 	private static ShoppingCart cart = new ShoppingCart();
+	public static final int anonymousCustNum = 3010;
 	
 	public static boolean cartIsEmpty() {
 		return (cart.getItems().size() == 0);

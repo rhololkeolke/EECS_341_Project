@@ -5,18 +5,25 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.GUIScreen;
+import com.googlecode.lanterna.gui.Window;
 import com.googlecode.lanterna.gui.component.Button;
 import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
+import com.googlecode.lanterna.gui.component.RadioCheckBoxList;
 import com.googlecode.lanterna.gui.component.TextBox;
+import com.googlecode.lanterna.gui.dialog.DialogButtons;
+import com.googlecode.lanterna.gui.dialog.DialogResult;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
 
 import edu.cwru.eecs341project.CartItem;
 import edu.cwru.eecs341project.GlobalState;
+import edu.cwru.eecs341project.WindowManager;
 
 public class CheckoutWindow extends MicrocenterWindow{	
 
@@ -142,7 +149,20 @@ public class CheckoutWindow extends MicrocenterWindow{
 		buttonsPanel.addComponent(new Button("Checkout", new Action() {
 			@Override
 			public void doAction() {
-				
+				DialogResult result = MessageBox.showMessageBox(guiScreen, "Delivery or Pickup", "Is this a delivery package?", DialogButtons.YES_NO);
+				ManagedWindow window;
+				if(result == DialogResult.YES)
+				{
+					// spawn the ship window
+					window = new ShippingLocations(guiScreen);
+				}
+				else {
+					// spawn the payment window
+					window = new PaymentWindow(guiScreen, null);
+				}
+				WindowManager.pushWindow(window);
+				guiScreen.showWindow((Window) window, GUIScreen.Position.FULL_SCREEN);
+				close();
 			}
 		}));
 		
@@ -154,5 +174,100 @@ public class CheckoutWindow extends MicrocenterWindow{
 	public void refresh() {
 		super.removeComponent(mainPanel);
 		drawWindow(guiScreen);
+	}
+	
+	public class PaymentWindow extends MicrocenterWindow {
+		private Panel mainPanel;
+		private Integer shipId;
+		public PaymentWindow(GUIScreen guiScreen, Integer shipId)
+		{
+			super(guiScreen, "Payment", true);
+			this.shipId = shipId;
+			
+			mainPanel = new Panel();
+			mainPanel.addComponent(new Button("Test"));
+			addComponent(mainPanel);
+		}
+	}
+	
+	public class ShippingLocations extends MicrocenterWindow {
+		private Panel mainPanel;
+		private RadioCheckBoxList locations;
+		Map<String, Integer> shipLocs;
+		public ShippingLocations(final GUIScreen guiScreen)
+		{
+			super(guiScreen, "Shipping", true);
+			
+			shipLocs = new HashMap<String, Integer>();
+			
+			mainPanel = new Panel();
+			if(GlobalState.getUserRole() == GlobalState.UserRole.CUSTOMER)
+			{
+				Connection dbConn = GlobalState.getDBConnection();
+				try {
+					PreparedStatement st = dbConn.prepareStatement(
+							"SELECT sl.id, sl.name " +
+							"FROM shipping_location as sl, " +
+							"     customer as c " +
+							"WHERE c.loyalty_number = sl.loyalty_number AND " +
+							"      c.loyalty_number = ?;");
+					st.setInt(1, GlobalState.getCustomerNumber());
+					ResultSet rs = st.executeQuery();
+					while(rs.next())
+					{
+						shipLocs.put(rs.getString(2), rs.getInt(1));
+					}
+				} catch(SQLException e) {
+					MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			
+			
+			locations = new RadioCheckBoxList();
+			for(String name : shipLocs.keySet())
+			{
+				locations.addItem(name);
+			}
+			locations.addItem("(New Shipping Location)");
+			locations.setCheckedItemIndex(0);
+			mainPanel.addComponent(locations);
+			
+			mainPanel.addComponent(new Button("Next Page", new Action() {
+				@Override
+				public void doAction() {
+					String selected = (String)locations.getCheckedItem();
+					Integer locId = shipLocs.get(selected);
+					
+					ManagedWindow window;
+					if(locId == null)
+					{
+						window = new NewShippingLocation(guiScreen);
+					}
+					else
+					{
+						window = new PaymentWindow(guiScreen, locId);
+					}
+					WindowManager.pushWindow(window);
+					guiScreen.showWindow((Window) window, GUIScreen.Position.FULL_SCREEN);
+					close();
+				}
+			}));
+			addComponent(mainPanel);
+		}
+	}
+	
+	public class NewShippingLocation extends MicrocenterWindow {
+		private Panel mainPanel;
+		public NewShippingLocation(GUIScreen guiScreen)
+		{
+			super(guiScreen, "New Shipping Location", true);
+			
+			mainPanel = new Panel();
+			mainPanel.addComponent(new Button("nextPage"));
+			addComponent(mainPanel);
+		}
 	}
 }
