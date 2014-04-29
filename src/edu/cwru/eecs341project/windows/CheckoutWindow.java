@@ -265,7 +265,192 @@ public class CheckoutWindow extends MicrocenterWindow{
 			paymentPanel.addComponent(creditCardPanel());
 			mainPanel.addComponent(paymentPanel);
 			
-			mainPanel.addComponent(new Button("Complete Purchase"));
+			mainPanel.addComponent(new Button("Complete Purchase", new Action() {
+				@Override
+				public void doAction() {
+					if(cashAmountBox != null)
+					{
+						double cashAmount = Double.parseDouble(cashAmountBox.getText());
+						double change;
+						if(shipId == null)
+							change = cashAmount - (getItemCost()*1.07);
+						else
+							change = cashAmount - (getItemCost()*1.07 + 10);
+						
+						if(change < 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Error", "Cash amount provided is not enough");
+							return;
+						}
+						else
+						{
+							MessageBox.showMessageBox(guiScreen, "Change", String.format("$%.2f", change));
+						}
+					}
+					
+					Connection dbConn = GlobalState.getDBConnection();
+					try {
+						dbConn.setAutoCommit(false);
+					} catch (SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+						return;
+					}
+					try {
+						List<CartItem> items = GlobalState.getCartItems();
+						int loyalty_number;
+						if(GlobalState.getUserRole() == GlobalState.UserRole.CUSTOMER)
+							loyalty_number = GlobalState.getCustomerNumber();
+						else
+							loyalty_number = GlobalState.anonymousCustNum;
+						
+						PreparedStatement st = dbConn.prepareStatement(
+								"INSERT INTO orders(order_date, store_id, loyalty_number, payment_type, shipping_loc, shipping_cost) " +
+								"VALUES (now(), ?, ?, ?, ?, ?);", new String[] {"id"});
+						st.setInt(1, items.get(0).storeId); // I know this will exist because can't get to checkout with an empty cart
+						st.setInt(2, loyalty_number);
+						st.setString(3, paymentTypeButton.getText());
+						if(shipId != null)
+						{
+							st.setInt(4, shipId);
+							st.setDouble(5, 10.0);
+						}
+						else
+						{
+							st.setNull(4, java.sql.Types.INTEGER);
+							st.setNull(5, java.sql.Types.NUMERIC);
+						}
+						
+						if(st.executeUpdate() <= 0)
+						{
+							dbConn.rollback();
+							st.close();
+							MessageBox.showMessageBox(guiScreen, "Checkout Error", "Failed to create order");
+							return;
+						}
+						ResultSet rs = st.getGeneratedKeys();
+						if(!rs.next())
+						{
+							dbConn.rollback();
+							rs.close();
+							st.close();
+							MessageBox.showMessageBox(guiScreen, "Checkout Error", "Failed to create order");
+							return;
+						}
+						int orderId = rs.getInt(1);
+						rs.close();
+						st.close();
+						
+						st = dbConn.prepareStatement(
+								"INSERT INTO order_item(order_id, upc, quantity, discount) " +
+								"VALUES (?, ?, ?, 0);");
+						st.setInt(1, orderId);
+						for(CartItem item : items)
+						{
+							st.setLong(2, item.upc);
+							st.setInt(3, item.getQuantity());
+							if(st.executeUpdate() <= 0)
+							{
+								dbConn.rollback();
+								st.close();
+								MessageBox.showMessageBox(guiScreen, "Checkout Error", "Could not add product " + item.upc);
+								return;
+							}
+						}
+						st.close();
+						
+						for(CartItem item : items)
+						{
+							st = dbConn.prepareStatement(
+									"SELECT pl.shelf_id, s.store_id, pl.upc, pl.amount " +
+									"FROM shelf as s, " +
+									"     product_location as pl " +
+									"WHERE s.store_id = ? AND " +
+									"      pl.upc = ? AND " +
+									"      s.id = pl.shelf_id;");
+							st.setInt(1, item.storeId);
+							st.setLong(2, item.upc);
+							rs = st.executeQuery();
+							for(int i=0; i<item.getQuantity(); i++)
+							{
+								rs.next();
+								int amountToRemove = 0;
+								for(int j=0; j<rs.getInt(4) && j < item.getQuantity(); j++)
+								{
+									amountToRemove++;
+									i++;
+								}
+								if(amountToRemove == rs.getInt(4))
+								{
+									PreparedStatement st1 = dbConn.prepareStatement(
+												"DELETE FROM product_location " +
+												"WHERE shelf_id = ? AND" +
+												"      upc = ?;");
+									st1.setInt(1, rs.getInt(1));
+									st1.setLong(2, item.upc);
+									if(st1.executeUpdate() <= 0)
+									{
+										dbConn.rollback();
+										rs.close();
+										st.close();
+										st1.close();
+										MessageBox.showMessageBox(guiScreen, "Checkout Error", "Could not delete product locations");
+										return;
+									}
+									st1.close();
+								}
+								else
+								{
+									PreparedStatement st1 = dbConn.prepareStatement(
+												"UPDATE product_location " +
+												"SET amount=? " +
+												"WHERE shelf_id = ? AND" +
+												"      upc = ?;");
+									st1.setInt(1, amountToRemove);
+									st1.setInt(2, rs.getInt(1));
+									st1.setLong(3, item.upc);
+									if(st1.executeUpdate() <= 0)
+									{
+										dbConn.rollback();
+										rs.close();
+										st.close();
+										st1.close();
+										MessageBox.showMessageBox(guiScreen, "Checkout Error", "Could not update product locations");
+										return;
+									}
+									st1.close();
+								}
+							}
+						}
+						
+						dbConn.commit();
+						
+						GlobalState.clearCart();
+						
+						close();
+						WindowManager.refreshAllWindows();
+						MessageBox.showMessageBox(guiScreen, "Checkout", "Succesfully ordered products! Your order number is " + orderId);
+						return;
+						
+					} catch(SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+						try {
+							dbConn.rollback();
+						} catch (SQLException e1) {
+							e1.printStackTrace();
+						}
+						return;
+					} catch (Exception e) {
+						e.printStackTrace();
+					} finally {
+						try {
+							dbConn.setAutoCommit(true);
+						} catch (SQLException e) {
+							MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+							return;
+						}
+					}
+				}
+			}));
 			addComponent(mainPanel);
 		}
 		

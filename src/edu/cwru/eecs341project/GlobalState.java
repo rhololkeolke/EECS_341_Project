@@ -38,6 +38,10 @@ public class GlobalState {
 		return (cart.getItems().size() == 0);
 	}
 	
+	public static void clearCart() {
+		cart.clear();
+	}
+	
 	public static List<CartItem> getCartItems() {
 		return cart.getItems();
 	}

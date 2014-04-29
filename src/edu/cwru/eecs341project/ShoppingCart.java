@@ -11,6 +11,11 @@ public class ShoppingCart {
 		items = new ArrayList<CartItem>();
 	}
 	
+	public void clear()
+	{
+		items = new ArrayList<CartItem>();
+	}
+	
 	public List<CartItem> getItems()
 	{
 		return items;
