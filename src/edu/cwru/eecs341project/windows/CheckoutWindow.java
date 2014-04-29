@@ -358,75 +358,11 @@ public class CheckoutWindow extends MicrocenterWindow{
 						}
 						st.close();
 						
-						for(CartItem item : items)
-						{
-							st = dbConn.prepareStatement(
-									"SELECT pl.shelf_id, s.store_id, pl.upc, pl.amount " +
-									"FROM shelf as s, " +
-									"     product_location as pl " +
-									"WHERE s.store_id = ? AND " +
-									"      pl.upc = ? AND " +
-									"      s.id = pl.shelf_id;");
-							st.setInt(1, item.storeId);
-							st.setLong(2, item.upc);
-							rs = st.executeQuery();
-							for(int i=0; i<item.getQuantity(); i++)
-							{
-								rs.next();
-								int amountToRemove = 0;
-								for(int j=0; j<rs.getInt(4) && j < item.getQuantity(); j++)
-								{
-									amountToRemove++;
-									i++;
-								}
-								if(amountToRemove == rs.getInt(4))
-								{
-									PreparedStatement st1 = dbConn.prepareStatement(
-												"DELETE FROM product_location " +
-												"WHERE shelf_id = ? AND" +
-												"      upc = ?;");
-									st1.setInt(1, rs.getInt(1));
-									st1.setLong(2, item.upc);
-									if(st1.executeUpdate() <= 0)
-									{
-										dbConn.rollback();
-										rs.close();
-										st.close();
-										st1.close();
-										MessageBox.showMessageBox(guiScreen, "Checkout Error", "Could not delete product locations");
-										return;
-									}
-									st1.close();
-								}
-								else
-								{
-									PreparedStatement st1 = dbConn.prepareStatement(
-												"UPDATE product_location " +
-												"SET amount=? " +
-												"WHERE shelf_id = ? AND" +
-												"      upc = ?;");
-									st1.setInt(1, amountToRemove);
-									st1.setInt(2, rs.getInt(1));
-									st1.setLong(3, item.upc);
-									if(st1.executeUpdate() <= 0)
-									{
-										dbConn.rollback();
-										rs.close();
-										st.close();
-										st1.close();
-										MessageBox.showMessageBox(guiScreen, "Checkout Error", "Could not update product locations");
-										return;
-									}
-									st1.close();
-								}
-							}
-						}
-						
 						dbConn.commit();
 						
 						GlobalState.clearCart();
 						
-						close();
+						WindowManager.exitToMain();
 						WindowManager.refreshAllWindows();
 						MessageBox.showMessageBox(guiScreen, "Checkout", "Succesfully ordered products! Your order number is " + orderId);
 						return;
