@@ -644,11 +644,13 @@ public class ProductsWindow extends MicrocenterWindow {
 									"SET name=?,\"desc\"=?,unit_price=round((?)::numeric, 2), brand=(SELECT b.id " +
 									"                                                            FROM brand as b " +
 									"                                                            WHERE b.name = ? " +
-									"                                                            LIMIT 1);");
+									"                                                            LIMIT 1)" +
+									"WHERE upc=?;");
 							st.setString(1, nameBox.getText().trim());
 							st.setString(2, descEdit.getData().trim());
 							st.setDouble(3, Double.parseDouble(unitPriceBox.getText()));
 							st.setString(4, brandButton.getText());
+							st.setLong(5, upc);
 							st.executeUpdate();
 							st.close();
 							
