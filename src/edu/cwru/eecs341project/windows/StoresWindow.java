@@ -14,6 +14,7 @@ import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.component.ActionListBox;
 import com.googlecode.lanterna.gui.component.Button;
+import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.dialog.ListSelectDialog;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
@@ -124,11 +125,62 @@ public class StoresWindow extends MicrocenterWindow {
 	}
 	
 	public class StoreInfoWindow extends MicrocenterWindow {
+		Panel mainPanel;
 		public StoreInfoWindow(final GUIScreen guiScreen, int storeId)
 		{
 			super(guiScreen, "Store Info", true);
 			
-			addComponent(new Button(""));
+			mainPanel = new Panel();
+			
+			Panel infoPanel = new Panel(Panel.Orientation.HORISONTAL);
+			Panel leftPanel = new Panel();
+			Panel rightPanel = new Panel();
+			
+			Connection dbConn = GlobalState.getDBConnection();
+			try {
+				PreparedStatement st = dbConn.prepareStatement(
+						"SELECT id, name, opening_date, street1, street2, city, state, zip " +
+						"FROM store " +
+						"WHERE id = ?;");
+				st.setInt(1, storeId);
+				ResultSet rs = st.executeQuery();
+			
+				if(!rs.next())
+				{
+					rs.close();
+					st.close();
+					MessageBox.showMessageBox(guiScreen, "Error", "Could not find store specified");
+					close();
+					return;
+				}
+				
+				leftPanel.addComponent(new Label("ID: "));
+				rightPanel.addComponent(new Label(""+storeId));
+				leftPanel.addComponent(new Label("Name: "));
+				rightPanel.addComponent(new Label(rs.getString(2)));
+				leftPanel.addComponent(new Label("Opening Date: "));
+				rightPanel.addComponent(new Label(rs.getDate(3).toString()));
+				leftPanel.addComponent(new Label("Street 1: "));
+				rightPanel.addComponent(new Label(rs.getString(4)));
+				leftPanel.addComponent(new Label("Street 2: "));
+				rightPanel.addComponent(new Label(rs.getString(5)));
+				leftPanel.addComponent(new Label("City: "));
+				rightPanel.addComponent(new Label(rs.getString(6)));
+				leftPanel.addComponent(new Label("State: "));
+				rightPanel.addComponent(new Label(rs.getString(7)));
+				leftPanel.addComponent(new Label("Zip: "));
+				rightPanel.addComponent(new Label(rs.getString(8)));
+			} catch(SQLException e) {
+				MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+			}
+			
+			infoPanel.addComponent(leftPanel);
+			infoPanel.addComponent(rightPanel);
+			mainPanel.addComponent(infoPanel);
+			
+			mainPanel.addComponent(new Button("Refresh"));
+			
+			addComponent(mainPanel);
 		}
 	}
 }
