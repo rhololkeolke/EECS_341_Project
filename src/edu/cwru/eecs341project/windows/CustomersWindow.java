@@ -16,8 +16,10 @@ import com.googlecode.lanterna.gui.component.Button;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.dialog.ListSelectDialog;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
+import com.googlecode.lanterna.gui.dialog.TextInputDialog;
 
 import edu.cwru.eecs341project.GlobalState;
+import edu.cwru.eecs341project.WindowManager;
 
 public class CustomersWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
@@ -72,15 +74,26 @@ public class CustomersWindow extends MicrocenterWindow {
         					nameBuilder.append(".");
         				}
         				
-        				nameToLoyaltyMap.put(nameBuilder.toString(), rs.getInt(1));
+        				nameToLoyaltyMap.put("[" + rs.getInt(1) + "]" + nameBuilder.toString(), rs.getInt(1));
         				listOptions.add("[" + rs.getInt(1) + "]" + nameBuilder.toString());
+        				
         			}
         			
-        			ListSelectDialog.showDialog(guiScreen, "Customer List", "All customers in database", listOptions.toArray());
+        			String selected = (String)ListSelectDialog.showDialog(guiScreen, "Customer List", "All customers in database", listOptions.toArray());
+        			CustomerInfoWindow window = new CustomerInfoWindow(guiScreen, nameToLoyaltyMap.get(selected));
+        			WindowManager.pushWindow(window);
+        			guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         		} catch(SQLException e) {
         			MessageBox.showMessageBox(guiScreen, "SQL Error", "Error getting list of customers" + e.getMessage());
         			return;
         		}
+        	}
+        	else if(label.equals("Customer Info")) {
+        		String custNum = (String)TextInputDialog.showTextInputBox(guiScreen, "Customer Info", "Enter a customer loyalty number", "");
+        		int loyaltyNumber = Integer.parseInt(custNum);
+        		CustomerInfoWindow window = new CustomerInfoWindow(guiScreen, loyaltyNumber);
+        		WindowManager.pushWindow(window);
+        		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	}
         	else {
         		MessageBox.showMessageBox(guiScreen, "Action", "Selected " + label);
