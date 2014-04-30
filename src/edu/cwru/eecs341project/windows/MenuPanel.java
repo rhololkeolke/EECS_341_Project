@@ -7,15 +7,15 @@ import com.googlecode.lanterna.gui.component.Panel;
 import edu.cwru.eecs341project.GlobalState;
 
 public class MenuPanel extends Panel{
-	public MenuPanel(boolean back, boolean checkout) {
+	public MenuPanel(boolean back) {
 		super(new Border.Bevel(true), Panel.Orientation.HORISONTAL);
 		if(back)
 			addComponent(new Label("Back (Esc)"));
 		else
 			addComponent(new Label("Exit (Esc)"));
 		addComponent(new Label("              "));
-		if(checkout)
-			addComponent(new Label("Checkout (Ctrl-C)"));
+		if(GlobalState.getCartItems().size() > 0)
+			addComponent(new Label("Checkout (Ctrl-C)          "));
 		else
 			addComponent(new Label("                                 "));
 		if(GlobalState.UserRole.ANONYMOUS == GlobalState.getUserRole())

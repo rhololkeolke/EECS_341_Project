@@ -36,7 +36,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	
 	private List<AddedComponent> addedComponents;
 	
-	public MicrocenterWindow(final GUIScreen guiScreen, String label, boolean back, boolean checkout) {
+	public MicrocenterWindow(final GUIScreen guiScreen, String label, boolean back) {
 		super(label);
 		
 		this.back = back;
@@ -47,7 +47,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 		
 		mainPanel = new Panel();
 		
-		menuPanel = new MenuPanel(back, checkout);
+		menuPanel = new MenuPanel(back);
 		mainPanel.addComponent(menuPanel);
 		
 		mainPanel.addComponent(new Label(""));
@@ -62,7 +62,17 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         mainPanel.addShortcut('c', true, false, new Action() {
         	@Override
         	public void doAction() {
-        		MessageBox.showMessageBox(guiScreen, "Checkout", "Not yet implemented");
+        		if(GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE || GlobalState.getUserRole() == GlobalState.UserRole.DBA)
+        			return; // checkout disabled for non-customers
+        		
+        		if(GlobalState.cartIsEmpty())
+        		{
+        			MessageBox.showMessageBox(guiScreen, "Cart", "Your shopping cart is empty. Please add products and then try again");
+        			return;
+        		}
+        		CheckoutWindow window = new CheckoutWindow(guiScreen);
+        		WindowManager.pushWindow(window);
+        		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	}
         });
         
@@ -74,6 +84,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         		if(GlobalState.getUserRole() != GlobalState.UserRole.ANONYMOUS)
         		{
         			GlobalState.setUserRole(GlobalState.UserRole.ANONYMOUS);
+        			WindowManager.exitToMain();
         			WindowManager.refreshWindow();
         			return;
         		}
@@ -99,7 +110,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         				String salt = queryResult.getString(2);
         				String storedPassword = queryResult.getString(1);
         				
-        				String hashedPassword = MicrocenterWindow.get_SHA_512_SecurePassword(password, salt);
+        				String hashedPassword = GlobalState.get_SHA_512_SecurePassword(password, salt);
         				
         				if(storedPassword.equals(hashedPassword))
         				{
@@ -121,6 +132,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         			{
         				MessageBox.showMessageBox(guiScreen, "Login Error", "Incorrect username/password");
         			}
+        			GlobalState.setUsername(username);
         			queryResult.close();
         			st.close();
         		} catch(SQLException e) {
@@ -159,6 +171,11 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Must provide a last name");
 	        			continue;
 	        		}
+	        		if(regWindow.username.length() == 0)
+	        		{
+	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Must provide a username");
+	        			continue;
+	        		}
 	        		if(regWindow.password.length() == 0)
 	        		{
 	        			MessageBox.showMessageBox(guiScreen, "Registration Error", "Password cannot be blank");
@@ -189,6 +206,19 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        			if(rs.next())
 	        			{
 	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Customer already exists");
+	        				continue;
+	        			}
+	        			
+	        			rs.close();
+	        			st.close();
+	        			
+	        			st = dbConnection.prepareStatement("SELECT * FROM users WHERE username=?;");
+	        			st.setString(1, regWindow.username);
+	        			rs = st.executeQuery();
+	        			
+	        			if(rs.next())
+	        			{
+	        				MessageBox.showMessageBox(guiScreen, "Registration Error", "Username taken");
 	        				continue;
 	        			}
 	        			
@@ -232,10 +262,10 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	        				break;
 	        			}
 	        			
-	        			String salt = MicrocenterWindow.getSalt();
-	        			String hashedPassword = get_SHA_512_SecurePassword(regWindow.password, salt);
+	        			String salt = GlobalState.getSalt();
+	        			String hashedPassword = GlobalState.get_SHA_512_SecurePassword(regWindow.password, salt);
 	        			st = dbConnection.prepareStatement("INSERT INTO users (username, password, salt, role, loyalty_number) VALUES (?, ?, ?, 'customer', ?);");
-	        			st.setString(1, loyaltyNumber.toString());
+	        			st.setString(1, regWindow.username);
 	        			st.setString(2, hashedPassword);
 	        			st.setString(3, salt);
 	        			st.setInt(4, loyaltyNumber);
@@ -300,7 +330,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 	@Override
 	public void refresh(){
 		mainPanel.removeAllComponents();
-		menuPanel = new MenuPanel(back, checkout);
+		menuPanel = new MenuPanel(back);
 		mainPanel.addComponent(menuPanel);
 		mainPanel.addComponent(new Label(""));
 		mainPanel.addComponent(new Label(""));
@@ -339,43 +369,14 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 		super.close();
 	}
 	
-	//Add salt
-    private static String getSalt() throws NoSuchAlgorithmException
-    {
-        SecureRandom sr = SecureRandom.getInstance("SHA1PRNG");
-        byte[] salt = new byte[16];
-        sr.nextBytes(salt);
-        return salt.toString();
-    }
-    
-    private static String get_SHA_512_SecurePassword(String password, String salt)
-    {
-        MessageDigest md;
-		try {
-			md = MessageDigest.getInstance("SHA-512");
-
-	        md.update(salt.getBytes());
-	        byte[] bytes = md.digest(password.getBytes());
-	        StringBuilder sb = new StringBuilder();
-	        for(int i=0; i< bytes.length ;i++)
-	        {
-	            sb.append(Integer.toString((bytes[i] & 0xff) + 0x100, 16).substring(1));
-	        }
-	        //Get complete hashed password in hex format
-	        return sb.toString();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		return "";
-    }
+	
     
     private class RegistrationWindow extends Window {
 
     	private final GUIScreen guiScreen;
     	public String firstName = null;
     	public String lastName = null;
+    	public String username = null;
     	public String password = null;
     	public String passwordConfirm = null;
     	public String phoneNumber = null;
@@ -383,6 +384,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
     	private Panel mainPanel;
     	private TextBox firstNameBox;
     	private TextBox lastNameBox;
+    	private TextBox usernameBox;
     	private TextBox passwordBox;
     	private TextBox passwordConfirmBox;
     	private TextBox areaCodeBox;
@@ -400,6 +402,9 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 			mainPanel.addComponent(new Label("Last Name"));
 			lastNameBox = new TextBox("");
 			mainPanel.addComponent(lastNameBox);
+			mainPanel.addComponent(new Label("Username"));
+			usernameBox = new TextBox("");
+			mainPanel.addComponent(usernameBox);
 			mainPanel.addComponent(new Label("Password"));
 			passwordBox = new PasswordBox();
 			mainPanel.addComponent(passwordBox);
@@ -423,6 +428,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
 				public void doAction() {
 					firstName = firstNameBox.getText().trim();
 					lastName = lastNameBox.getText().trim();
+					username = usernameBox.getText().trim();
 					password = passwordBox.getText().trim();
 					passwordConfirm = passwordConfirmBox.getText().trim();
 					StringBuilder sb = new StringBuilder();

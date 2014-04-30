@@ -1,6 +1,4 @@
 #!/usr/bin/python
-
-
 from models import db_connect, create_tables, Store, Brand, Product, Vendor, VendorPurchase, Shelf, ProductLocation, Stock
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import desc
@@ -12,8 +10,6 @@ import datetime
 import time
 import string
 
-import pydb
-
 if __name__ == '__main__':
     engine = db_connect()
     create_tables(engine)
@@ -22,18 +18,7 @@ if __name__ == '__main__':
     session = Session()
 
     stores = session.query(Store).all()
-    # create shelves if needed
-    for store in stores:
-        if len(session.query(Shelf).filter_by(store_id=store.id).all()) == 0:
-            print "Creating shelves for store %d" % store.id
-            num_shelves = random.randint(50,100)
-            for i in range(num_shelves):
-                shelf = Shelf(store_id=store.id)
-                session.add(shelf)
-        else:
-            print "Store %d already has shelves" % store.id
-        session.commit()
-    
+
     for store in stores:
         print "Stocking store %d" % store.id
         product_results = session.execute('''
@@ -78,56 +63,10 @@ if __name__ == '__main__':
 
             amount = purchased_amount - ordered_amount + returned_amount
             if amount < 0:
-                print "Warning: Invalid product history in database"
-                amount = 0
-            print "[%3.0f%%] Stocking %d of product %d at store %d" % (100*float(i_p)/num_p, amount, product.upc, store.id)
+                print "Found invalid product history in database"
                 
-            stock = Stock(store_id=store.id,
-                          upc=product.upc,
-                          amount=amount)
-            session.add(stock)
-
-            # check if already on a shelf
-            shelf_location_results = session.execute('''
-                                                     SELECT COUNT(*) AS num
-                                                     FROM shelf as s,
-                                                          product_location as pl
-                                                     WHERE s.store_id = %d AND
-                                                          s.id = pl.shelf_id AND
-                                                          pl.upc = %d''' % (store.id, stock.upc))
-            shelf_locations = [r for r in shelf_location_results][0]
-            
-            if shelf_locations.num == 0:
-                print "Placing product %d on shelves" % stock.upc
-                shelves = session.query(Shelf).filter_by(store_id=store.id).all()
-                chosen_shelves = random.sample(shelves, 3)
-                percentage_assigned = 0
-                for i in range(2):
-                    percent = random.uniform(0, 1)
-                    shelf_amount = int(stock.amount*percent)
-                    if shelf_amount == 0:
-                        continue
-                    
-                    if percent + percentage_assigned > 1:
-                        percent = 1 - percentage_assigned
-                        percentage_assigned = 1
-                    else:
-                        percentage_assigned = percentage_assigned + percent
-                    product_loc = ProductLocation(shelf_id=chosen_shelves[i].id,
-                                                  upc=stock.upc,
-                                                  amount=shelf_amount)
-                    session.add(product_loc)
-                percent = 1 - percentage_assigned
-                shelf_amount = int(stock.amount*percent)
-                if shelf_amount <= 0:
-                    continue
-
-                product_loc = ProductLocation(shelf_id=chosen_shelves[2].id,
-                                              upc=stock.upc,
-                                              amount=shelf_amount)
-                session.add(product_loc)
-            else:
-                print "Product already on shelves"
-            session.commit()
-
+                purchase = session.query(VendorPurchase).filter_by(store_id=store.id).filter_by(upc=product.upc).update({VendorPurchase.amount: VendorPurchase.amount+1})
+                session.commit()
     session.close()
+                                          
+                

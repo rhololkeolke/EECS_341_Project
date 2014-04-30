@@ -13,6 +13,8 @@ public class WindowManager {
 	
 	public static void popWindow() {
 		windows.pop();
+		if(windows.size() > 0)
+			windows.peek().refresh();
 	}
 	
 	public static int stackSize() {
@@ -28,5 +30,12 @@ public class WindowManager {
 	
 	public static void refreshWindow() {
 		windows.peek().refresh();
+	}
+	
+	public static void refreshAllWindows() {
+		for(ManagedWindow window : windows)
+		{
+			window.refresh();
+		}
 	}
 }

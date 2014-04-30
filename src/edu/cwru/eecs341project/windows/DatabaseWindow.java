@@ -29,7 +29,7 @@ public class DatabaseWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
 	
 	public DatabaseWindow(GUIScreen guiScreen, String label) {
-		super(guiScreen, label, true, false);
+		super(guiScreen, label, true);
 		
 		actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();
@@ -46,7 +46,7 @@ public class DatabaseWindow extends MicrocenterWindow {
 		private TextArea queryResult;
 		public RawQueryWindow(final GUIScreen guiScreen)
 		{
-			super(guiScreen, "Raw SQL Query", true, false);
+			super(guiScreen, "Raw SQL Query", true);
 			
 			inputPanel = new Panel();
 			inputPanel.addComponent(new Label("Enter a query to execute"));
@@ -149,7 +149,7 @@ public class DatabaseWindow extends MicrocenterWindow {
 		
 		public TableSchemaWindow(GUIScreen guiScreen, String tableName)
 		{
-			super(guiScreen, tableName + " Schema", true, false);
+			super(guiScreen, tableName + " Schema", true);
 			
 			String result = "";
 			Connection conn = GlobalState.getDBConnection();
