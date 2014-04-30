@@ -59,7 +59,16 @@ public class MainWindow extends MicrocenterWindow {
         	} else if(label.equals("Stores")) {
         		guiScreen.showWindow(new StoresWindow(guiScreen), GUIScreen.Position.FULL_SCREEN);
         	} else if(label.equals("Customers")) {
-        		guiScreen.showWindow(new CustomersWindow(guiScreen), GUIScreen.Position.FULL_SCREEN);
+        		if(GlobalState.getUserRole() == GlobalState.UserRole.CUSTOMER)
+        		{
+        			try {
+						guiScreen.showWindow(new CustomersWindow.CustomerInfoWindow(guiScreen, GlobalState.getCustomerNumber()), GUIScreen.Position.FULL_SCREEN);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+        		} else {
+        			guiScreen.showWindow(new CustomersWindow(guiScreen), GUIScreen.Position.FULL_SCREEN);
+        		}
         	} else {
         		MessageBox.showMessageBox(owner, "Action", "Selected " + label);
         	}

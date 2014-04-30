@@ -12,6 +12,7 @@ import java.util.Map;
 import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.component.ActionListBox;
+import com.googlecode.lanterna.gui.component.Button;
 import com.googlecode.lanterna.gui.component.Panel;
 import com.googlecode.lanterna.gui.dialog.ListSelectDialog;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
@@ -26,8 +27,11 @@ public class CustomersWindow extends MicrocenterWindow {
 		
 		actionsPanel = new Panel();
 		ActionListBox actionListBox = new ActionListBox();
-		actionListBox.addAction(new ActionListBoxItem("Search"));
-		actionListBox.addAction(new ActionListBoxItem("List Customers"));
+		if(GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE || GlobalState.getUserRole() == GlobalState.UserRole.DBA)
+		{
+			actionListBox.addAction(new ActionListBoxItem("Search"));
+			actionListBox.addAction(new ActionListBoxItem("List Customers"));
+		}
 		actionListBox.addAction(new ActionListBoxItem("Customer Info"));
 		actionsPanel.addComponent(actionListBox);
         addComponent(actionsPanel);
@@ -82,5 +86,14 @@ public class CustomersWindow extends MicrocenterWindow {
         		MessageBox.showMessageBox(guiScreen, "Action", "Selected " + label);
         	}
         }
+	}
+	
+	public static class CustomerInfoWindow extends MicrocenterWindow {
+		public CustomerInfoWindow(final GUIScreen guiScreen, int loyalty_number)
+		{
+			super(guiScreen, "Customer Info", true);
+			
+			addComponent(new Button(""));
+		}
 	}
 }
