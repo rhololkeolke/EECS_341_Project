@@ -5,9 +5,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import com.googlecode.lanterna.gui.Action;
@@ -171,6 +174,8 @@ public class CustomersWindow extends MicrocenterWindow {
 				
 			} catch(SQLException e) {
 				MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+				close();
+				return;
 			}
 			
 			Panel infoPanel = new Panel(Panel.Orientation.HORISONTAL);
@@ -199,7 +204,30 @@ public class CustomersWindow extends MicrocenterWindow {
 			
 			mainPanel.addComponent(infoPanel);
 			
-			mainPanel.addComponent(new Button("Save data"));
+			mainPanel.addComponent(new Button("Save data", new Action() {
+				@Override
+				public void doAction() {
+					Connection dbConn = GlobalState.getDBConnection();
+					try {
+						PreparedStatement st = dbConn.prepareStatement(
+								"UPDATE customer " +
+								"SET first_name=?, middle_initial=?, last_name=?, birthdate=to_date(?, 'YYYY-MM-DD'), gender=? " +
+								"WHERE loyalty_number = ?;");
+						st.setString(1, firstNameBox.getText().trim());
+						st.setString(2, middleInitialBox.getText().trim());
+						st.setString(3, lastNameBox.getText().trim());
+						st.setString(4, birthdayBox.getText().trim());
+						st.setString(5, ((String)genderRadio.getCheckedItem()).toUpperCase());
+						st.setInt(6, loyalty_number);
+						st.executeUpdate();
+						
+					} catch(SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+						close();
+						return;
+					}
+				}
+			}));
 			
 			addComponent(mainPanel);
 		}
