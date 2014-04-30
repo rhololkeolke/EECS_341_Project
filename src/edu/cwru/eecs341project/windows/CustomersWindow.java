@@ -14,7 +14,10 @@ import com.googlecode.lanterna.gui.Action;
 import com.googlecode.lanterna.gui.GUIScreen;
 import com.googlecode.lanterna.gui.component.ActionListBox;
 import com.googlecode.lanterna.gui.component.Button;
+import com.googlecode.lanterna.gui.component.Label;
 import com.googlecode.lanterna.gui.component.Panel;
+import com.googlecode.lanterna.gui.component.RadioCheckBoxList;
+import com.googlecode.lanterna.gui.component.TextBox;
 import com.googlecode.lanterna.gui.dialog.ListSelectDialog;
 import com.googlecode.lanterna.gui.dialog.MessageBox;
 import com.googlecode.lanterna.gui.dialog.TextInputDialog;
@@ -121,11 +124,84 @@ public class CustomersWindow extends MicrocenterWindow {
 	}
 	
 	public static class CustomerInfoWindow extends MicrocenterWindow {
-		public CustomerInfoWindow(final GUIScreen guiScreen, int loyalty_number)
+		private Panel mainPanel;
+		private TextBox firstNameBox;
+		private TextBox middleInitialBox;
+		private TextBox lastNameBox;
+		private TextBox birthdayBox;
+		private RadioCheckBoxList genderRadio;
+		private Label joinDateLabel;
+		private Label loyaltyPointsLabel;
+		private Button saveButton;
+		public CustomerInfoWindow(final GUIScreen guiScreen,final int loyalty_number)
 		{
 			super(guiScreen, "Customer Info", true);
+		
+			mainPanel = new Panel();
 			
-			addComponent(new Button(""));
+			Connection dbConn = GlobalState.getDBConnection();
+			try {
+				PreparedStatement st = dbConn.prepareStatement(
+						"SELECT first_name, middle_initial, last_name, birthdate, gender, join_date, loyalty_points " +
+						"FROM customer " +
+						"WHERE loyalty_number = ?;");
+				st.setInt(1, loyalty_number);
+				ResultSet rs = st.executeQuery();
+				if(!rs.next())
+				{
+					rs.close();
+					st.close();
+					MessageBox.showMessageBox(guiScreen, "Errro", "Could not retrieve customer information");
+					close();
+					return;
+				}
+				firstNameBox = new TextBox(rs.getString(1));
+				middleInitialBox = new TextBox(rs.getString(2));
+				lastNameBox = new TextBox(rs.getString(3));
+				birthdayBox = new TextBox(rs.getDate(4).toString());
+				genderRadio = new RadioCheckBoxList();
+				genderRadio.addItem("m");
+				genderRadio.addItem("f");
+				if(rs.getString(5).equals("m"))
+					genderRadio.setCheckedItemIndex(0);
+				else
+					genderRadio.setCheckedItemIndex(1);
+				joinDateLabel = new Label(rs.getDate(6).toString());
+				loyaltyPointsLabel = new Label(""+rs.getInt(7));
+				
+			} catch(SQLException e) {
+				MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+			}
+			
+			Panel infoPanel = new Panel(Panel.Orientation.HORISONTAL);
+			Panel leftPanel = new Panel();
+			Panel rightPanel = new Panel();
+			leftPanel.addComponent(new Label("Loyalty Number: "));
+			rightPanel.addComponent(new Label("" + loyalty_number));
+			leftPanel.addComponent(new Label("First Name: "));
+			rightPanel.addComponent(firstNameBox);
+			leftPanel.addComponent(new Label("Middle Initial: "));
+			rightPanel.addComponent(middleInitialBox);
+			leftPanel.addComponent(new Label("Last Name: "));
+			rightPanel.addComponent(lastNameBox);
+			leftPanel.addComponent(new Label("Birthday"));
+			rightPanel.addComponent(birthdayBox);
+			leftPanel.addComponent(new Label("Gender: "));
+			leftPanel.addComponent(new Label(""));
+			rightPanel.addComponent(genderRadio);
+			leftPanel.addComponent(new Label("Join Date"));
+			rightPanel.addComponent(joinDateLabel);
+			leftPanel.addComponent(new Label("Loyalty Points"));
+			rightPanel.addComponent(loyaltyPointsLabel);
+			
+			infoPanel.addComponent(leftPanel);
+			infoPanel.addComponent(rightPanel);
+			
+			mainPanel.addComponent(infoPanel);
+			
+			mainPanel.addComponent(new Button("Save data"));
+			
+			addComponent(mainPanel);
 		}
 	}
 }
