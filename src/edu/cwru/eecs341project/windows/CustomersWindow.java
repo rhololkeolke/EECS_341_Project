@@ -1,6 +1,7 @@
 package edu.cwru.eecs341project.windows;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -52,14 +53,32 @@ public class CustomersWindow extends MicrocenterWindow {
         }
 
         public void doAction() {
-        	if(label.equals("List Customers"))
+        	if(label.equals("List Customers") || label.equals("Search"))
         	{
         		Connection dbConn = GlobalState.getDBConnection();
         		List<String> listOptions = new ArrayList<String>();
         		Map<String, Integer> nameToLoyaltyMap = new HashMap<String, Integer>();
         		try {
-        			Statement st = dbConn.createStatement();
-        			ResultSet rs = st.executeQuery("SELECT loyalty_number, last_name, first_name, middle_initial FROM customer ORDER BY last_name, first_name, middle_initial;");
+        			ResultSet rs;
+        			if(label.equals("List Customers"))
+        			{
+        				Statement st = dbConn.createStatement();
+        				rs = st.executeQuery("SELECT loyalty_number, last_name, first_name, middle_initial FROM customer ORDER BY last_name, first_name, middle_initial;");
+        			}
+        			else
+        			{
+        				String searchString = TextInputDialog.showTextInputBox(guiScreen, "Customer Search", "Enter search string", "");
+        				if(searchString == null)
+        					return; // user canceled
+        				PreparedStatement st = dbConn.prepareStatement(
+        						"SELECT loyalty_number, last_name, first_name, middle_initial " +
+        						"FROM customer as c " +
+        						"WHERE (to_tsvector(c.last_name) @@ plainto_tsquery('english', ?) OR " +
+        						"       to_tsvector(c.first_name) @@ plainto_tsquery('english', ?));");
+        				st.setString(1, searchString);
+        				st.setString(2, searchString);
+        				rs = st.executeQuery();
+        			}
         			while(rs.next())
         			{
         				StringBuilder nameBuilder = new StringBuilder();
@@ -96,7 +115,7 @@ public class CustomersWindow extends MicrocenterWindow {
         		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	}
         	else {
-        		MessageBox.showMessageBox(guiScreen, "Action", "Selected " + label);
+        		MessageBox.showMessageBox(guiScreen, "Error", "Unknown option " + label);
         	}
         }
 	}
