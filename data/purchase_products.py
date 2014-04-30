@@ -57,7 +57,6 @@ if __name__ == '__main__':
                                              product_info[product.upc]['price']*.1),
                                     float(product.unit_price)), 2)])
         product_info[product.upc]['vendor_info'] = vendor_info
-    session.close()
 
     for store in stores:
         for i, product in enumerate(products):
