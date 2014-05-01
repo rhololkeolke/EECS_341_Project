@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -280,7 +281,7 @@ public class CustomersWindow extends MicrocenterWindow {
 	public static class OrderViewWindow extends MicrocenterWindow {
 		Panel mainPanel;
 		List<Button> returnButtons;
-		public OrderViewWindow(final GUIScreen guiScreen, int orderId)
+		public OrderViewWindow(final GUIScreen guiScreen, final int orderId)
 		{
 			super(guiScreen, "Order View", true);
 			
@@ -389,7 +390,80 @@ public class CustomersWindow extends MicrocenterWindow {
 					
 					totalCost += rs.getDouble(3)*rs.getInt(4);
 					
-					Button returnButton = new Button("return");
+					final int orderedQuantity = rs.getInt(4);
+					final long orderedUpc = rs.getLong(1);
+					Button returnButton = new Button("return", new Action() {
+						@Override
+						public void doAction() {
+							// find all other returns for this item
+							Connection dbConn = GlobalState.getDBConnection();
+							PreparedStatement st1;
+							try {
+								// has to be sum in case split across multiple returns
+								st1 = dbConn.prepareStatement(
+										"SELECT SUM(ri.quantity) " +
+										"FROM return_item as ri, " +
+										"     orders as o " +
+										"WHERE o.id = ri.order_id AND " +
+										"      o.id = ? AND " +
+										"      ri.upc = ?;");
+								st1.setInt(1, orderId);
+								st1.setLong(2, orderedUpc);
+								System.out.println(st1.toString());
+								ResultSet rs1 = st1.executeQuery();
+								if(!rs1.next())
+								{
+									rs1.close();
+									st1.close();
+									MessageBox.showMessageBox(guiScreen, "Error", "Returned quantity query failed");
+									return;
+								}
+								
+								int returnedQuantity = rs1.getInt(1);
+								if(returnedQuantity >= orderedQuantity)
+								{
+									MessageBox.showMessageBox(guiScreen, "Error", "You have already returned all of this item that you ordered");
+									return;
+								}
+								
+								String strQuantity = TextInputDialog.showTextInputBox(guiScreen, "Amount to Return", "Enter an amount less than or equal to " + (orderedQuantity - returnedQuantity), "");
+								if(strQuantity == null || strQuantity.length() == 0)
+									return;
+								int quantity = Integer.parseInt(strQuantity);
+								if(quantity == 0)
+									return;
+								if(quantity < 0)
+								{
+									MessageBox.showMessageBox(guiScreen, "Error", "Return amount must be positive");
+									return;
+								}
+								if(quantity > (orderedQuantity - returnedQuantity))
+								{
+									MessageBox.showMessageBox(guiScreen, "Error", "Cannot return more than what was ordered");
+									return;
+								}
+								rs1.close();
+								st1.close();
+								
+								st1 = dbConn.prepareStatement(
+										"INSERT INTO return_item " +
+										"VALUES (?, ?, ?, ?);");
+								st1.setInt(1, orderId);
+								st1.setLong(2, orderedUpc);
+								st1.setTimestamp(3, new Timestamp(new java.util.Date().getTime()));
+								st1.setInt(4, quantity);
+								st1.executeUpdate();
+								
+								close();
+								OrderViewWindow window = new OrderViewWindow(guiScreen, orderId);
+								WindowManager.pushWindow(window);
+								guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+								
+							} catch (SQLException e) {
+								MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+							}
+						}
+					});
 					returnButtons.add(returnButton);
 					returnPanel.addComponent(returnButton);
 				}
