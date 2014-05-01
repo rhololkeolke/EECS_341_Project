@@ -180,15 +180,142 @@ public class StoresWindow extends MicrocenterWindow {
 				rightPanel.addComponent(new Label(rs.getString(7)));
 				leftPanel.addComponent(new Label("Zip: "));
 				rightPanel.addComponent(new Label(rs.getString(8)));
+				
+				infoPanel.addComponent(leftPanel);
+				infoPanel.addComponent(rightPanel);
+				mainPanel.addComponent(infoPanel);
+				
+				rs.close();
+				st.close();
+				st = dbConn.prepareStatement(
+						"SELECT day_of_week, open_hour, close_hour " +
+						"FROM store_hours " +
+						"WHERE store_id = ?;");
+				st.setInt(1, storeId);
+				rs = st.executeQuery();
+				
+				Map<String, java.sql.Time> openMap = new HashMap<String, java.sql.Time>();
+				Map<String, java.sql.Time> closeMap = new HashMap<String, java.sql.Time>();
+				while(rs.next())
+				{
+					openMap.put(rs.getString(1), rs.getTime(2));
+					closeMap.put(rs.getString(1), rs.getTime(3));
+				}
+				rs.close();
+				st.close();
+				Panel hoursPanel = new Panel(Panel.Orientation.HORISONTAL);
+				Panel dayPanel = new Panel();
+				dayPanel.addComponent(new Label("Day"));
+				dayPanel.addComponent(new Label("----"));
+				Panel openPanel = new Panel();
+				openPanel.addComponent(new Label("Open"));
+				openPanel.addComponent(new Label("------"));
+				Panel closePanel = new Panel();
+				closePanel.addComponent(new Label("Close"));
+				closePanel.addComponent(new Label("------"));
+				
+				dayPanel.addComponent(new Label("Sunday"));
+				java.sql.Time openHour = openMap.get("Su");
+				if(openHour != null)
+					openPanel.addComponent(new Label(openHour.toString()));
+				else
+					openPanel.addComponent(new Label("----"));
+				java.sql.Time closeHour = closeMap.get("Su");
+				if(closeHour != null)
+					closePanel.addComponent(new Label(closeHour.toString()));
+				else
+					closePanel.addComponent(new Label("------"));
+				dayPanel.addComponent(new Label("Monday"));
+				openHour = openMap.get("M");
+				if(openHour != null)
+					openPanel.addComponent(new Label(openHour.toString()));
+				else
+					openPanel.addComponent(new Label("----"));
+				closeHour = closeMap.get("M");
+				if(closeHour != null)
+					closePanel.addComponent(new Label(closeHour.toString()));
+				else
+					closePanel.addComponent(new Label("------"));
+				dayPanel.addComponent(new Label("Tuesday"));
+				openHour = openMap.get("Tu");
+				if(openHour != null)
+					openPanel.addComponent(new Label(openHour.toString()));
+				else
+					openPanel.addComponent(new Label("----"));
+				closeHour = closeMap.get("Tu");
+				if(closeHour != null)
+					closePanel.addComponent(new Label(closeHour.toString()));
+				else
+					closePanel.addComponent(new Label("------"));
+				dayPanel.addComponent(new Label("Wednesday"));
+				openHour = openMap.get("W");
+				if(openHour != null)
+					openPanel.addComponent(new Label(openHour.toString()));
+				else
+					openPanel.addComponent(new Label("----"));
+				closeHour = closeMap.get("W");
+				if(closeHour != null)
+					closePanel.addComponent(new Label(closeHour.toString()));
+				else
+					closePanel.addComponent(new Label("------"));
+				dayPanel.addComponent(new Label("Thursday"));
+				openHour = openMap.get("Th");
+				if(openHour != null)
+					openPanel.addComponent(new Label(openHour.toString()));
+				else
+					openPanel.addComponent(new Label("----"));
+				closeHour = closeMap.get("Th");
+				if(closeHour != null)
+					closePanel.addComponent(new Label(closeHour.toString()));
+				else
+					closePanel.addComponent(new Label("------"));
+				dayPanel.addComponent(new Label("Friday"));
+				openHour = openMap.get("F");
+				if(openHour != null)
+					openPanel.addComponent(new Label(openHour.toString()));
+				else
+					openPanel.addComponent(new Label("----"));
+				closeHour = closeMap.get("F");
+				if(closeHour != null)
+					closePanel.addComponent(new Label(closeHour.toString()));
+				else
+					closePanel.addComponent(new Label("------"));
+				dayPanel.addComponent(new Label("Saturday"));
+				openHour = openMap.get("Sa");
+				if(openHour != null)
+					openPanel.addComponent(new Label(openHour.toString()));
+				else
+					openPanel.addComponent(new Label("----"));
+				closeHour = closeMap.get("Sa");
+				if(closeHour != null)
+					closePanel.addComponent(new Label(closeHour.toString()));
+				else
+					closePanel.addComponent(new Label("------"));
+				
+				hoursPanel.addComponent(dayPanel);
+				hoursPanel.addComponent(openPanel);
+				hoursPanel.addComponent(closePanel);
+				mainPanel.addComponent(hoursPanel);
+				
+				// get any closings within 1 week of today
+				st = dbConn.prepareStatement(
+						"SELECT s.closed_date, s.desc " +
+						"FROM store_closing as s " +
+						"WHERE s.store_id = ? AND " +
+						"      s.closed_date BETWEEN NOW() AND NOW() + '7 days'::interval;");
+				st.setInt(1, storeId);
+				rs = st.executeQuery();
+				
+				if(rs.next())
+				{
+					mainPanel.addComponent(new Label(""));
+					mainPanel.addComponent(new Label("Closed: " + rs.getDate(1).toString() + " Reason: " + rs.getString(2)));
+				}
+				
 			} catch(SQLException e) {
 				MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
 			}
-			
-			infoPanel.addComponent(leftPanel);
-			infoPanel.addComponent(rightPanel);
-			mainPanel.addComponent(infoPanel);
-			
-			
+
 			
 			mainPanel.addComponent(new Button("Refresh"));
 			
