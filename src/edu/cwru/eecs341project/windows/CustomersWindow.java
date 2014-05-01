@@ -5,12 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import com.googlecode.lanterna.gui.Action;
@@ -228,6 +225,236 @@ public class CustomersWindow extends MicrocenterWindow {
 					}
 				}
 			}));
+			
+			mainPanel.addComponent(new Button("View Orders", new Action() {
+				@Override
+				public void doAction() {
+					Connection dbConn = GlobalState.getDBConnection();
+					try {
+						PreparedStatement st = dbConn.prepareStatement(
+								"SELECT id, order_date " +
+								"FROM orders " +
+								"WHERE loyalty_number = ? " +
+								"ORDER BY order_date DESC;");
+						st.setInt(1, loyalty_number);
+						ResultSet rs = st.executeQuery();
+						List<String> options = new ArrayList<String>();
+						Map<String, Integer> orderIdMap = new HashMap<String, Integer>();
+						while(rs.next())
+						{
+							String name = "["+rs.getDate(2).toString()+"]"+rs.getInt(1);
+							orderIdMap.put(name, rs.getInt(1));
+							options.add(name);
+						}
+						rs.close();
+						st.close();
+						
+						if(options.size() == 0)
+						{
+							MessageBox.showMessageBox(guiScreen, "Orders", "No orders found");
+							return;
+						}
+						
+						String selected = (String)ListSelectDialog.showDialog(guiScreen, "Orders", "All orders", options.toArray());
+						
+						if(selected == null)
+						{
+
+							return;
+						}
+						
+						// otherwise spawn a new order window for this order
+						OrderViewWindow window = new OrderViewWindow(guiScreen, orderIdMap.get(selected));
+						WindowManager.pushWindow(window);
+						guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+					} catch(SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+					}
+				}
+			}));
+			
+			addComponent(mainPanel);
+		}
+	}
+	
+	public static class OrderViewWindow extends MicrocenterWindow {
+		Panel mainPanel;
+		List<Button> returnButtons;
+		public OrderViewWindow(final GUIScreen guiScreen, int orderId)
+		{
+			super(guiScreen, "Order View", true);
+			
+			mainPanel = new Panel();
+			returnButtons = new ArrayList<Button>();
+			
+			Connection dbConn = GlobalState.getDBConnection();
+			try {
+				PreparedStatement st = dbConn.prepareStatement(
+						"SELECT order_date, payment_type, shipping_loc, shipping_cost, loyalty_number " +
+						"FROM orders " +
+						"WHERE id = ?;");
+				st.setInt(1, orderId);
+				ResultSet rs = st.executeQuery();
+				
+				if(!rs.next())
+				{
+					rs.close();
+					st.close();
+					MessageBox.showMessageBox(guiScreen, "Error", "Could not find specified orders");
+					close();
+				}
+				
+				Panel orderInfoPanel = new Panel(Panel.Orientation.HORISONTAL);
+				Panel leftInfoPanel = new Panel();
+				Panel rightInfoPanel = new Panel();
+				
+				leftInfoPanel.addComponent(new Label("OrderId: "));
+				rightInfoPanel.addComponent(new Label(""+orderId));
+				leftInfoPanel.addComponent(new Label("Date: "));
+				rightInfoPanel.addComponent(new Label(rs.getDate(1).toString()));
+				leftInfoPanel.addComponent(new Label("Payment Method: "));
+				rightInfoPanel.addComponent(new Label(rs.getString(2)));
+				
+				int loyaltyNumber = rs.getInt(5);
+				double shippingCost = 0;
+				int shippingLoc = rs.getInt(3);
+				if(!rs.wasNull())
+				{
+					shippingCost = rs.getDouble(4);
+					rs.close();
+					st.close();
+					
+					st = dbConn.prepareStatement(
+							"SELECT name " +
+							"FROM shipping_location " +
+							"WHERE loyalty_number = ? AND" +
+							"      id = ?; ");
+					st.setInt(1, loyaltyNumber);
+					st.setInt(2, shippingLoc);
+					rs = st.executeQuery();
+					
+					if(!rs.next())
+					{
+						rs.close();
+						st.close();
+						MessageBox.showMessageBox(guiScreen, "Error", "Invalid shipping location");
+						close();
+					}
+					
+					leftInfoPanel.addComponent(new Label("Shipping Address: "));
+					rightInfoPanel.addComponent(new Label(rs.getString(1)));
+				}
+				st.close();
+				rs.close();
+				orderInfoPanel.addComponent(leftInfoPanel);
+				orderInfoPanel.addComponent(rightInfoPanel);
+				
+				mainPanel.addComponent(orderInfoPanel);
+				mainPanel.addComponent(new Label("")); // insert blank line
+				
+				// now get the order items
+				Panel orderItemPanel = new Panel(Panel.Orientation.HORISONTAL);
+				Panel upcPanel = new Panel();
+				upcPanel.addComponent(new Label("UPC"));
+				upcPanel.addComponent(new Label("----"));
+				Panel namePanel = new Panel();
+				namePanel.addComponent(new Label("Name"));
+				namePanel.addComponent(new Label("------"));
+				Panel pricePanel = new Panel();
+				pricePanel.addComponent(new Label("Price"));
+				pricePanel.addComponent(new Label("-------"));
+				Panel quantityPanel = new Panel();
+				quantityPanel.addComponent(new Label("Quantity"));
+				quantityPanel.addComponent(new Label("---------"));
+				Panel returnPanel = new Panel();
+				returnPanel.addComponent(new Label("Return"));
+				returnPanel.addComponent(new Label("-------"));
+				st = dbConn.prepareStatement(
+						"SELECT oi.upc, p.name, p.unit_price, oi.quantity " +
+						"FROM order_item as oi, " +
+						"     orders as o, " +
+						"     product as p " +
+						"WHERE o.id = oi.order_id AND " +
+						"      o.id = ? AND " +
+						"      oi.upc = p.upc;");
+				st.setInt(1, orderId);
+				rs = st.executeQuery();
+				double totalCost = 0;
+				while(rs.next())
+				{
+					upcPanel.addComponent(new Label(""+rs.getLong(1)));
+					namePanel.addComponent(new Label(rs.getString(2)));
+					pricePanel.addComponent(new Label(String.format("$%.2f", rs.getDouble(3))));
+					quantityPanel.addComponent(new Label(""+rs.getInt(4)));
+					
+					totalCost += rs.getDouble(3)*rs.getInt(4);
+					
+					Button returnButton = new Button("return");
+					returnButtons.add(returnButton);
+					returnPanel.addComponent(returnButton);
+				}
+				st.close();
+				rs.close();
+				namePanel.addComponent(new Label(""));
+				namePanel.addComponent(new Label("Shipping"));
+				namePanel.addComponent(new Label("Sales Tax:"));
+				namePanel.addComponent(new Label("Total: "));
+				pricePanel.addComponent(new Label("-------"));
+				pricePanel.addComponent(new Label(String.format("$%.2f", shippingCost)));
+				pricePanel.addComponent(new Label(String.format("$%.2f", totalCost*.07)));
+				pricePanel.addComponent(new Label(String.format("$%.2f", totalCost*1.07 + shippingCost)));
+				orderItemPanel.addComponent(upcPanel);
+				orderItemPanel.addComponent(namePanel);
+				orderItemPanel.addComponent(pricePanel);
+				orderItemPanel.addComponent(quantityPanel);
+				orderItemPanel.addComponent(returnPanel);
+				mainPanel.addComponent(orderItemPanel);
+				
+				mainPanel.addComponent(new Label(""));
+				
+				Panel returnItemPanel = new Panel(Panel.Orientation.HORISONTAL);
+				Panel returnDatePanel = new Panel();
+				returnDatePanel.addComponent(new Label("Return Date"));
+				returnDatePanel.addComponent(new Label("------------"));
+				Panel returnUpcPanel = new Panel();
+				returnUpcPanel.addComponent(new Label("UPC"));
+				returnUpcPanel.addComponent(new Label("-----"));
+				Panel returnNamePanel = new Panel();
+				returnNamePanel.addComponent(new Label("Name"));
+				returnNamePanel.addComponent(new Label("------"));
+				Panel returnQuantityPanel = new Panel();
+				returnQuantityPanel.addComponent(new Label("Quantity"));
+				returnQuantityPanel.addComponent(new Label("---------"));
+				
+				st = dbConn.prepareStatement(
+						"SELECT ri.upc, ri.return_date, ri.quantity, p.name " +
+						"FROM return_item as ri, " +
+						"     orders as o, " +
+						"     product as p " +
+						"WHERE o.id = ri.order_id AND " +
+						"      p.upc = ri.upc AND " +
+						"      o.id = ?;");
+				st.setInt(1, orderId);
+				rs = st.executeQuery();
+				while(rs.next())
+				{
+					returnDatePanel.addComponent(new Label(rs.getDate(2).toString()));
+					returnUpcPanel.addComponent(new Label(""+rs.getLong(1)));
+					returnNamePanel.addComponent(new Label(rs.getString(4)));
+					returnQuantityPanel.addComponent(new Label(""+rs.getInt(3)));
+				}
+				
+				returnItemPanel.addComponent(returnDatePanel);
+				returnItemPanel.addComponent(returnUpcPanel);
+				returnItemPanel.addComponent(returnNamePanel);
+				returnItemPanel.addComponent(returnQuantityPanel);
+				mainPanel.addComponent(returnItemPanel);
+				rs.close();
+				st.close();
+				
+			} catch(SQLException e) {
+				MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+			}
 			
 			addComponent(mainPanel);
 		}
