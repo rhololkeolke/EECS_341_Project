@@ -136,7 +136,7 @@ public class StoresWindow extends MicrocenterWindow {
 	
 	public class StoreInfoWindow extends MicrocenterWindow {
 		Panel mainPanel;
-		public StoreInfoWindow(final GUIScreen guiScreen, int storeId)
+		public StoreInfoWindow(final GUIScreen guiScreen, final int storeId)
 		{
 			super(guiScreen, "Store Info", true);
 			
@@ -317,7 +317,97 @@ public class StoresWindow extends MicrocenterWindow {
 			}
 
 			
-			mainPanel.addComponent(new Button("Refresh"));
+			mainPanel.addComponent(new Button("View Product Stock", new Action() {
+				@Override
+				public void doAction() {
+					Connection dbConn = GlobalState.getDBConnection();
+					PreparedStatement st;
+					try {
+						st = dbConn.prepareStatement(
+								"SELECT p.upc, p.name, s.amount, p.unit_price " +
+								"FROM product as p, " +
+								"     stock as s " +
+								"WHERE p.upc = s.upc AND " +
+								"      s.store_id = ? " +
+								"ORDER BY s.amount;");
+						st.setInt(1, storeId);
+						ResultSet rs = st.executeQuery();
+						
+						List<String> options = new ArrayList<String>();
+						Map<String, Long> upcMap = new HashMap<String, Long>();
+						Map<String, Double> priceMap = new HashMap<String, Double>();
+						while(rs.next())
+						{
+							String name = "["+rs.getLong(1)+"] "+rs.getString(2)+" | " + rs.getInt(3);
+							options.add(name);
+							upcMap.put(name, rs.getLong(1));
+							priceMap.put(name, rs.getDouble(4));
+						}
+						rs.close();
+						st.close();
+						
+						String selected = (String)ListSelectDialog.showDialog(guiScreen, "Products", "List of products sorted by stocked amount", options.toArray());
+						if(selected == null)
+							return;
+						
+						if(GlobalState.getUserRole() == GlobalState.UserRole.EMPLOYEE || GlobalState.getUserRole() == GlobalState.UserRole.DBA)
+						{
+							Long upc = upcMap.get(selected);
+							Double price = priceMap.get(selected);
+							// display a list of all vendors selling this item
+							st = dbConn.prepareStatement(
+									"SELECT v.id, v.name " +
+									"FROM product as p, " +
+									"     vendor as v, " +
+									"     supplies as s " +
+									"WHERE p.upc = ? AND " +
+									"      p.brand = s.brand_id AND " +
+									"      s.vendor_id = v.id;");
+							st.setLong(1, upc);
+							rs = st.executeQuery();
+							
+							options.clear();
+							Map<String, Integer> vidMap = new HashMap<String, Integer>();
+							while(rs.next())
+							{
+								String name = "["+rs.getInt(1)+"] " + rs.getString(2);
+								options.add(name);
+								vidMap.put(name, rs.getInt(1));
+							}
+							rs.close();
+							st.close();
+							
+							selected = (String)ListSelectDialog.showDialog(guiScreen, "Vendor Select", "Select vendor to purchase from", options.toArray());
+							if(selected == null)
+								return;
+							
+							String strAmount = TextInputDialog.showTextInputBox(guiScreen, "Purchase Amount", "How many do you want to order", "");
+							if(strAmount == null || strAmount.length() == 0)
+								return;
+							
+							int amount = Integer.parseInt(strAmount);
+							if(amount < 0)
+							{
+								MessageBox.showMessageBox(guiScreen, "Error", "Amount must be positive");
+								return;
+							}
+							st = dbConn.prepareStatement(
+									"INSERT INTO vendor_purchase " +
+									"VALUES (?, ?, ?, NOW(), ?, ?);");
+							st.setInt(1, storeId);
+							st.setInt(2, vidMap.get(selected));
+							st.setLong(3, upc);
+							st.setInt(4, amount);
+							st.setDouble(5, price*.9);
+							st.executeUpdate();
+							
+							MessageBox.showMessageBox(guiScreen, "Success", "Successfully ordered more product");
+						}
+					} catch (SQLException e) {
+						MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
+					}
+				}
+			}));
 			
 			addComponent(mainPanel);
 		}
