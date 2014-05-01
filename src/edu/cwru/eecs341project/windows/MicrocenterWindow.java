@@ -139,7 +139,7 @@ public class MicrocenterWindow extends Window implements ManagedWindow{
         			MessageBox.showMessageBox(guiScreen, "Login Error", "SQL Error " + e.getMessage());
         		}
         		
-        		WindowManager.refreshWindow();
+        		WindowManager.refreshAllWindows();
         	}
         });
         
