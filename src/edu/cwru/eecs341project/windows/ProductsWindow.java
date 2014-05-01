@@ -143,7 +143,7 @@ public class ProductsWindow extends MicrocenterWindow {
         }
 	}
 	
-	private class BrowseWindow extends MicrocenterWindow
+	public static class BrowseWindow extends MicrocenterWindow
 	{
 		Panel mainPanel;
 		List<String> categories;
@@ -290,7 +290,7 @@ public class ProductsWindow extends MicrocenterWindow {
 		}
 	}
 	
-	private class ProductInfoWindow extends MicrocenterWindow
+	public static class ProductInfoWindow extends MicrocenterWindow
 	{
 		private Long upc;
 		private String name;

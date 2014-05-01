@@ -25,6 +25,7 @@ import com.googlecode.lanterna.gui.dialog.TextInputDialog;
 
 import edu.cwru.eecs341project.GlobalState;
 import edu.cwru.eecs341project.WindowManager;
+import edu.cwru.eecs341project.windows.ProductsWindow.ProductInfoWindow;
 
 public class CustomersWindow extends MicrocenterWindow {
 	private Panel actionsPanel;
@@ -281,6 +282,7 @@ public class CustomersWindow extends MicrocenterWindow {
 	public static class OrderViewWindow extends MicrocenterWindow {
 		Panel mainPanel;
 		List<Button> returnButtons;
+		List<Button> productButtons;
 		public OrderViewWindow(final GUIScreen guiScreen, final int orderId)
 		{
 			super(guiScreen, "Order View", true);
@@ -383,7 +385,15 @@ public class CustomersWindow extends MicrocenterWindow {
 				double totalCost = 0;
 				while(rs.next())
 				{
-					upcPanel.addComponent(new Label(""+rs.getLong(1)));
+					final long orderedUpc = rs.getLong(1);
+					upcPanel.addComponent(new Button(""+orderedUpc, new Action() {
+						@Override
+						public void doAction() {
+							ProductsWindow.ProductInfoWindow window = new ProductsWindow.ProductInfoWindow(guiScreen, orderedUpc);
+							WindowManager.pushWindow(window);
+							guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+						}
+					}));
 					namePanel.addComponent(new Label(rs.getString(2)));
 					pricePanel.addComponent(new Label(String.format("$%.2f", rs.getDouble(3))));
 					quantityPanel.addComponent(new Label(""+rs.getInt(4)));
@@ -391,7 +401,6 @@ public class CustomersWindow extends MicrocenterWindow {
 					totalCost += rs.getDouble(3)*rs.getInt(4);
 					
 					final int orderedQuantity = rs.getInt(4);
-					final long orderedUpc = rs.getLong(1);
 					Button returnButton = new Button("return", new Action() {
 						@Override
 						public void doAction() {
@@ -512,8 +521,16 @@ public class CustomersWindow extends MicrocenterWindow {
 				rs = st.executeQuery();
 				while(rs.next())
 				{
+					final long returnedUpc = rs.getLong(1);
 					returnDatePanel.addComponent(new Label(rs.getDate(2).toString()));
-					returnUpcPanel.addComponent(new Label(""+rs.getLong(1)));
+					returnUpcPanel.addComponent(new Button(""+returnedUpc, new Action() {
+						@Override
+						public void doAction() {
+							ProductsWindow.ProductInfoWindow window = new ProductsWindow.ProductInfoWindow(guiScreen, returnedUpc);
+							WindowManager.pushWindow(window);
+							guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
+						}
+					}));
 					returnNamePanel.addComponent(new Label(rs.getString(4)));
 					returnQuantityPanel.addComponent(new Label(""+rs.getInt(3)));
 				}
