@@ -58,7 +58,8 @@ public class StoresWindow extends MicrocenterWindow {
         			Statement st = dbConn.createStatement();
 	        		ResultSet rs = st.executeQuery(
 	        					"SELECT id, name " +
-	        					"FROM store;");
+	        					"FROM store " +
+	        					"WHERE name NOT LIKE 'Website';");
 	        		
 	        		List<String> options = new ArrayList<String>();
 	        		Map<String, Integer> storeIds = new HashMap<String, Integer>();
@@ -92,7 +93,8 @@ public class StoresWindow extends MicrocenterWindow {
 	        		PreparedStatement st = dbConn.prepareStatement(
 	        						"SELECT id, name " +
 	        						"FROM store " +
-	        						"WHERE LOWER(state) LIKE LOWER(?);");
+	        						"WHERE LOWER(state) LIKE LOWER(?)  AND " +
+	        						"      name NOT LIKE 'Website';");
 	        		st.setString(1, state);
 		        	ResultSet rs = st.executeQuery();
 	
@@ -117,6 +119,14 @@ public class StoresWindow extends MicrocenterWindow {
         			MessageBox.showMessageBox(guiScreen, "SQL Error", e.getMessage());
         		}
         		
+        	} else if(label.equals("Store Info")) {
+        		String strId = TextInputDialog.showTextInputBox(guiScreen, "Store ID", "Enter the store ID", "");
+        		if(strId == null || strId.length() == 0)
+        			return;
+        		int storeId = Integer.parseInt(strId);
+        		StoreInfoWindow window = new StoreInfoWindow(guiScreen, storeId);
+        		WindowManager.pushWindow(window);
+        		guiScreen.showWindow(window, GUIScreen.Position.FULL_SCREEN);
         	}
         	else {
         		MessageBox.showMessageBox(guiScreen, "Action", "Selected " + label);
@@ -177,6 +187,8 @@ public class StoresWindow extends MicrocenterWindow {
 			infoPanel.addComponent(leftPanel);
 			infoPanel.addComponent(rightPanel);
 			mainPanel.addComponent(infoPanel);
+			
+			
 			
 			mainPanel.addComponent(new Button("Refresh"));
 			
